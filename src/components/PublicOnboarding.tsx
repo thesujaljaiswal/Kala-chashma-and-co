@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { saveStationSelection, getTreks } from "@/app/actions";
+import TicketCard, { TicketData } from "./TicketCard";
 
 export default function PublicOnboarding({ urlTrekShareId }: { urlTrekShareId?: string }) {
   const [treks, setTreks] = useState<any[]>([]);
@@ -12,6 +13,7 @@ export default function PublicOnboarding({ urlTrekShareId }: { urlTrekShareId?: 
   
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [ticketData, setTicketData] = useState<TicketData | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
 
   const [isLoading, setIsLoading] = useState(true);
@@ -52,9 +54,17 @@ export default function PublicOnboarding({ urlTrekShareId }: { urlTrekShareId?: 
     const result = await saveStationSelection(passengerName, phone, boarding, selectedTrekId);
     
     setIsSaving(false);
-    if (result.success) {
+    if (result.success && selectedTrek && selectedStationObj) {
+      setTicketData({
+        passengerName,
+        phone,
+        station: boarding,
+        ticketToken: result.ticketToken,
+        trekName: selectedTrek.name,
+        trekDate: selectedTrek.date,
+        stations: selectedTrek.stations
+      });
       setSaved(true);
-      setTimeout(() => setSaved(false), 10000); 
     } else {
       setErrorMsg(result.error || "An error occurred.");
     }
@@ -134,7 +144,24 @@ export default function PublicOnboarding({ urlTrekShareId }: { urlTrekShareId?: 
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {saved && ticketData ? (
+          <div className="animate-fadeIn">
+            <TicketCard ticket={ticketData} />
+            <button 
+              onClick={() => {
+                setSaved(false);
+                setTicketData(null);
+                setPassengerName("");
+                setPhone("");
+                setBoarding("");
+              }}
+              className="mt-6 w-full text-center text-gray-400 hover:text-white transition-colors text-sm font-medium underline"
+            >
+              Book another passenger
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
           
           <div>
             <label className="block text-sm font-bold text-gray-200 mb-2 uppercase tracking-wide">
@@ -272,29 +299,8 @@ export default function PublicOnboarding({ urlTrekShareId }: { urlTrekShareId?: 
             )}
           </button>
 
-          {/* Status Indicator & Share */}
-          {saved && (
-            <div className="mt-8 p-6 bg-green-500/10 border border-green-500/30 rounded-2xl flex flex-col items-center animate-fadeIn space-y-5">
-              <span className="text-green-400 text-lg font-bold flex items-center justify-center gap-3 text-center leading-snug">
-                <div className="bg-green-500/20 p-2 rounded-full">
-                  <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
-                </div>
-                Confirmed! Ensure you reach {boarding} by {formatTime(selectedStationObj?.time)}.
-              </span>
-              
-              <button
-                type="button"
-                onClick={handleShare}
-                className="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md active:scale-95"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
-                </svg>
-                Share Boarding Pass
-              </button>
-            </div>
-          )}
-        </form>
+          </form>
+        )}
       </main>
     </div>
   );

@@ -66,11 +66,18 @@ export async function saveStationSelection(passengerName: string, phone: string,
     // Check for duplicates!
     const existing = await Selection.findOne({ passengerName, phone, station, trekId });
     if (existing) {
-      return { success: false, error: "You have already registered for this station on this trek with these details!" };
+      return { success: false, error: "You have already registered for this station on this trek with these details!", ticketToken: existing.ticketToken };
     }
 
-    const newSelection = await Selection.create({ passengerName, phone, station, trekId });
-    return { success: true, id: newSelection._id.toString() };
+    const tokenChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let randStr = '';
+    for (let i = 0; i < 6; i++) {
+      randStr += tokenChars.charAt(Math.floor(Math.random() * tokenChars.length));
+    }
+    const ticketToken = `TRK-${randStr}`;
+
+    const newSelection = await Selection.create({ passengerName, phone, station, trekId, ticketToken });
+    return { success: true, id: newSelection._id.toString(), ticketToken };
   } catch (error) {
     console.error("Failed to save selection:", error);
     return { success: false, error: "Failed to save selection" };
@@ -96,5 +103,48 @@ export async function togglePassengerArrival(selectionId: string, arrived: boole
   } catch (error) {
     console.error("Failed to toggle arrival:", error);
     return { success: false, error: "Failed to toggle arrival" };
+  }
+}
+
+export async function checkTicketByPhone(phone: string, trekId: string) {
+  try {
+    await dbConnect();
+    
+    // Strip non-digits from input
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.length < 5) return { success: false, error: "Please enter a valid phone number." };
+    
+    // Create a flexible regex that matches the sequence of digits, ignoring spaces/symbols in the DB string.
+    // We anchor it to the end ($) so "8591250180" matches "+91 85912 50180" correctly.
+    const regexPattern = cleanPhone.split('').join('\\D*') + '\\D*$';
+    const phoneRegex = new RegExp(regexPattern);
+
+    // Find the selection for this phone number and trek using the flexible regex
+    const selection = await Selection.findOne({ 
+      phone: { $regex: phoneRegex }, 
+      trekId 
+    }).sort({ createdAt: -1 }).lean();
+    
+    if (!selection) return { success: false, error: "No booking found for this phone number." };
+    
+    // Get the Trek to show the details
+    const trek = await Trek.findById(selection.trekId).lean();
+    if (!trek) return { success: false, error: "Booking found, but trek details are missing." };
+
+    return { 
+      success: true, 
+      ticket: JSON.parse(JSON.stringify({
+        passengerName: selection.passengerName,
+        phone: selection.phone,
+        station: selection.station,
+        ticketToken: selection.ticketToken,
+        trekName: trek.name,
+        trekDate: trek.date,
+        stations: trek.stations
+      }))
+    };
+  } catch (error) {
+    console.error("Failed to lookup ticket:", error);
+    return { success: false, error: "Failed to look up ticket" };
   }
 }
