@@ -38,7 +38,7 @@ export default function AdminDashboard() {
     const params = new URLSearchParams(window.location.search);
     const savedTrekId = params.get("trek");
     const currentTrekId = selectedTrekId || savedTrekId;
-    const trekExists = data.some(t => t._id === currentTrekId);
+    const trekExists = data.some((t: any) => t._id === currentTrekId);
 
     if (trekExists && currentTrekId) {
       setSelectedTrekId(currentTrekId);
