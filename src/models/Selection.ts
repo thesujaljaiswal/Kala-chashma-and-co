@@ -5,6 +5,7 @@ export interface ISelection extends Document {
   phone: string;
   station: string;
   trekId: mongoose.Types.ObjectId;
+  arrived: boolean;
   createdAt: Date;
 }
 
@@ -13,6 +14,7 @@ const SelectionSchema = new Schema<ISelection>({
   phone: { type: String, required: true },
   station: { type: String, required: true },
   trekId: { type: Schema.Types.ObjectId, ref: 'Trek', required: true },
+  arrived: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
 });
 

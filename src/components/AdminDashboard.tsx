@@ -1,14 +1,21 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getTreks, getSelectionsByTrek, createTrek, updateTrek, deleteTrek } from "@/app/actions";
+import { getTreks, getSelectionsByTrek, createTrek, updateTrek, deleteTrek, togglePassengerArrival } from "@/app/actions";
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<"onboarding" | "manage">("manage");
+  const [activeTab, setActiveTab] = useState<"onboarding" | "manage" | "checkin">("manage");
   const [treks, setTreks] = useState<any[]>([]);
   const [selectedTrekId, setSelectedTrekId] = useState<string>("");
   const [selections, setSelections] = useState<any[]>([]);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
+  const [selectedStationName, setSelectedStationName] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [expandedTreks, setExpandedTreks] = useState<Record<string, boolean>>({});
+
+  const toggleTrek = (id: string) => {
+    setExpandedTreks(prev => ({...prev, [id]: !prev[id]}));
+  };
   
   // Sorting State
   const [sortField, setSortField] = useState<"name" | "station" | "time">("time");
@@ -176,7 +183,24 @@ export default function AdminDashboard() {
   };
 
   const getSortedSelections = () => {
+    const activeTrek = treks.find(t => t._id === selectedTrekId);
+    
     return [...selections].sort((a, b) => {
+      // 1. Primary Sort by Station Rank (Ascending)
+      let aRank = 9999;
+      let bRank = 9999;
+      if (activeTrek && activeTrek.stations) {
+        const aIdx = activeTrek.stations.findIndex((s: any) => s.name === a.station);
+        const bIdx = activeTrek.stations.findIndex((s: any) => s.name === b.station);
+        if (aIdx !== -1) aRank = aIdx;
+        if (bIdx !== -1) bRank = bIdx;
+      }
+      
+      if (aRank !== bRank) {
+        return aRank - bRank;
+      }
+      
+      // 2. Secondary Sort by User's sortField and sortOrder
       let aVal, bVal;
       if (sortField === "name") {
         aVal = (a.passengerName || "").toLowerCase();
@@ -185,9 +209,8 @@ export default function AdminDashboard() {
         aVal = (a.station || "").toLowerCase();
         bVal = (b.station || "").toLowerCase();
       } else {
-        const aTime = new Date(a.createdAt).getTime();
-        const bTime = new Date(b.createdAt).getTime();
-        return sortOrder === "asc" ? aTime - bTime : bTime - aTime;
+        aVal = new Date(a.createdAt).getTime();
+        bVal = new Date(b.createdAt).getTime();
       }
       
       if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
@@ -204,35 +227,83 @@ export default function AdminDashboard() {
   const sortedSelections = getSortedSelections();
 
   return (
-    <div className="w-full max-w-6xl mx-auto p-4 md:p-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
-        <h1 className="text-3xl font-extrabold text-white mb-4 md:mb-0 drop-shadow-md">Admin Dashboard</h1>
-        
-        <div className="flex space-x-2 bg-white/10 p-1.5 rounded-2xl border border-white/10 shadow-xl backdrop-blur-sm">
-          <button
-            onClick={() => setActiveTab("manage")}
-            className={`px-6 py-2.5 rounded-xl font-semibold transition-all duration-300 ${
-              activeTab === "manage" ? "bg-gradient-to-r from-rose-600 to-red-700 text-white shadow-lg" : "text-gray-300 hover:text-white hover:bg-white/5"
-            }`}
-          >
-            Manage Treks
-          </button>
-          <button
-            onClick={() => setActiveTab("onboarding")}
-            className={`px-6 py-2.5 rounded-xl font-semibold transition-all duration-300 ${
-              activeTab === "onboarding" ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg" : "text-gray-300 hover:text-white hover:bg-white/5"
-            }`}
-          >
-            Onboarding List
-          </button>
+    <div className="flex w-full min-h-[calc(100vh-64px)] relative overflow-hidden bg-black/20">
+      {/* Sidebar Overlay for Mobile */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 border-r border-white/10 transform transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className="flex flex-col h-full p-4">
+          <div className="flex items-center justify-between mb-8 mt-2 md:justify-center">
+            <h1 className="text-xl font-extrabold text-white text-center drop-shadow-md">Admin Panel</h1>
+            <button className="md:hidden text-gray-400 hover:text-white" onClick={() => setIsSidebarOpen(false)}>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+          </div>
+          
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => { setActiveTab("manage"); setIsSidebarOpen(false); }}
+              className={`w-full text-left px-4 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center gap-3 ${
+                activeTab === "manage" ? "bg-gradient-to-r from-rose-600 to-red-700 text-white shadow-lg" : "text-gray-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+              Manage Treks
+            </button>
+            <button
+              onClick={() => { setActiveTab("onboarding"); setIsSidebarOpen(false); }}
+              className={`w-full text-left px-4 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center gap-3 ${
+                activeTab === "onboarding" ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg" : "text-gray-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+              Onboarding List
+            </button>
+            <button
+              onClick={() => { setActiveTab("checkin"); setIsSidebarOpen(false); }}
+              className={`w-full text-left px-4 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center gap-3 ${
+                activeTab === "checkin" ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg" : "text-gray-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              Check-in
+            </button>
+          </div>
         </div>
       </div>
 
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col w-full h-[calc(100vh-64px)] overflow-y-auto">
+        {/* Mobile Header (Hamburger) */}
+        <div className="md:hidden flex items-center justify-between p-4 border-b border-white/10 bg-gray-900/80 backdrop-blur-md sticky top-0 z-30">
+          <div className="flex items-center">
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="text-gray-300 hover:text-white p-1 mr-3"
+            >
+              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            </button>
+            <h2 className="text-lg font-bold text-white tracking-wide">
+              {activeTab === "manage" && "Manage Treks"}
+              {activeTab === "onboarding" && "Onboarding List"}
+              {activeTab === "checkin" && "Station Check-in"}
+            </h2>
+          </div>
+        </div>
+
+        <div className="p-4 md:p-8 w-full max-w-6xl mx-auto pb-24">
+
       {activeTab === "manage" && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           {/* Create / Edit Trek Section */}
-          <div className="bg-white/5 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl relative overflow-hidden h-fit">
+          <div className="lg:col-span-7 bg-white/5 backdrop-blur-xl border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden h-fit">
             <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${editingTrekId ? "from-yellow-400 to-orange-500" : "from-rose-600 to-red-700"}`}></div>
             
             <div className="flex justify-between items-center mb-6">
@@ -313,7 +384,7 @@ export default function AdminDashboard() {
                           placeholder="Station Name"
                         />
                       </div>
-                      <div className="w-1/3 border-l border-white/10 pl-3">
+                      <div className="w-[110px] shrink-0 border-l border-white/10 pl-3">
                         <input
                           type="time"
                           required
@@ -372,9 +443,9 @@ export default function AdminDashboard() {
           </div>
 
           {/* Existing Treks List */}
-          <div className="space-y-6">
+          <div className="lg:col-span-5 space-y-6">
             <h2 className="text-2xl font-bold text-white mb-2">Active Treks</h2>
-            <div className="space-y-4 max-h-[700px] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-4 pr-2">
               {treks.length === 0 ? (
                 <div className="bg-white/5 border border-white/10 rounded-3xl p-8 text-center text-gray-400">
                   No treks created yet.
@@ -406,13 +477,25 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                     
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {trek.stations.map((s: any, idx: number) => (
-                        <span key={idx} className="bg-black/30 px-3 py-1.5 rounded-lg text-xs text-gray-300 border border-white/5 flex items-center gap-2">
-                          <span className="text-white font-semibold">{s.name}</span>
-                          <span className="text-amber-300">{s.time}</span>
-                        </span>
-                      ))}
+                    <div className="mb-4">
+                      <button 
+                        onClick={() => toggleTrek(trek._id)}
+                        className="text-sm font-semibold text-gray-400 hover:text-white transition-colors flex items-center gap-1 mb-2 bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg border border-white/10"
+                      >
+                        {expandedTreks[trek._id] ? "Hide Stations" : `Show Stations (${trek.stations?.length || 0})`}
+                        <svg className={`w-4 h-4 transform transition-transform ${expandedTreks[trek._id] ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                      </button>
+                      
+                      {expandedTreks[trek._id] && (
+                        <div className="flex flex-wrap gap-2 mt-3 animate-fade-in-up">
+                          {trek.stations?.map((s: any, idx: number) => (
+                            <span key={idx} className="bg-black/30 px-3 py-1.5 rounded-lg text-xs text-gray-300 border border-white/5 flex items-center gap-2">
+                              <span className="text-white font-semibold">{s.name}</span>
+                              <span className="text-amber-300">{s.time}</span>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     <button
@@ -447,7 +530,7 @@ export default function AdminDashboard() {
         <div className="bg-white/5 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-amber-500"></div>
           
-          <div className="mb-8 flex flex-col md:flex-row gap-4 justify-between items-center bg-black/20 p-4 rounded-2xl border border-white/5">
+          <div className="mb-6 flex flex-col md:flex-row gap-4 justify-between items-center bg-black/20 p-4 rounded-2xl border border-white/5">
             <h2 className="text-xl font-bold text-white">Passenger Manifest</h2>
             <div className="flex items-center gap-3 w-full md:w-auto">
               <span className="text-sm text-gray-400 font-medium">Filter by Trek:</span>
@@ -464,7 +547,48 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-white/10 bg-black/20 custom-scrollbar">
+          <div className="flex md:hidden items-center gap-3 w-full mb-4 bg-black/20 p-3 rounded-2xl border border-white/5">
+            <span className="text-sm text-gray-400 font-medium whitespace-nowrap">Sort by:</span>
+            <select
+              value={`${sortField}-${sortOrder}`}
+              onChange={(e) => {
+                const [field, order] = e.target.value.split('-');
+                setSortField(field as "name" | "station" | "time");
+                setSortOrder(order as "asc" | "desc");
+              }}
+              className="bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-full text-sm appearance-none"
+            >
+              <option value="time-desc" className="text-black">Time (Latest to Oldest)</option>
+              <option value="time-asc" className="text-black">Time (Oldest to Latest)</option>
+              <option value="name-asc" className="text-black">Alphabetical (A-Z)</option>
+              <option value="name-desc" className="text-black">Alphabetical (Z-A)</option>
+            </select>
+          </div>
+
+          <div className="block md:hidden space-y-4">
+            {sortedSelections.length === 0 ? (
+              <div className="py-12 text-center text-gray-400 font-medium bg-black/20 rounded-2xl border border-white/10">
+                No passengers have boarded this trek yet.
+              </div>
+            ) : (
+              sortedSelections.map((sel) => (
+                <div key={sel._id} className="bg-black/20 border border-white/10 p-4 rounded-2xl flex flex-col gap-3">
+                  <div className="flex justify-between items-start">
+                    <h3 className="text-lg font-bold text-white">{sel.passengerName}</h3>
+                    <span className="bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-500/30 px-3 py-1 rounded-full text-xs font-semibold text-orange-200">
+                      {sel.station}
+                    </span>
+                  </div>
+                  <div className="text-gray-400 font-medium text-sm flex justify-between items-center">
+                    <span className="text-gray-300">{sel.phone}</span>
+                    <span className="text-gray-500 text-xs">{new Date(sel.createdAt).toLocaleString()}</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="hidden md:block overflow-x-auto rounded-2xl border border-white/10 bg-black/20 custom-scrollbar">
             <table className="w-full text-left border-collapse whitespace-nowrap">
               <thead>
                 <tr className="border-b border-white/10 bg-white/5 select-none">
@@ -508,6 +632,114 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {activeTab === "checkin" && (
+        <div className="bg-white/5 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-500 to-emerald-500"></div>
+          
+          <div className="mb-8 flex flex-col md:flex-row gap-4 justify-between items-center bg-black/20 p-4 rounded-2xl border border-white/5">
+            <h2 className="text-xl font-bold text-white">Station Check-in</h2>
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              <span className="text-sm text-gray-400 font-medium">Select Trek:</span>
+              <select
+                value={selectedTrekId}
+                onChange={(e) => setSelectedTrekId(e.target.value)}
+                className="bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-full md:w-64 font-medium appearance-none"
+              >
+                <option value="" className="text-black">Select a Trek</option>
+                {treks.map(t => (
+                  <option key={t._id} value={t._id} className="text-black">{t.name} ({t.date})</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {treks.find(t => t._id === selectedTrekId)?.stations.map((station: any, idx: number) => {
+              const stationSelections = selections.filter(s => s.station === station.name);
+              const total = stationSelections.length;
+              const arrived = stationSelections.filter(s => s.arrived).length;
+              const left = total - arrived;
+              
+              return (
+                <div 
+                  key={idx} 
+                  onClick={() => setSelectedStationName(station.name)}
+                  className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-6 cursor-pointer transition-colors group relative overflow-hidden"
+                >
+                  <h3 className="text-xl font-bold text-white mb-2 group-hover:text-green-400 transition-colors">{station.name}</h3>
+                  <div className="flex gap-4 text-sm font-medium">
+                    <div className="flex flex-col">
+                      <span className="text-gray-400">Total</span>
+                      <span className="text-2xl text-white">{total}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-gray-400">Arrived</span>
+                      <span className="text-2xl text-green-400">{arrived}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-gray-400">Remaining</span>
+                      <span className="text-2xl text-orange-400">{left}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {selectedStationName && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-gray-900 border border-white/20 rounded-3xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="p-6 border-b border-white/10 flex justify-between items-center bg-gray-800">
+              <h3 className="text-2xl font-bold text-white">
+                {selectedStationName} Check-in
+              </h3>
+              <button 
+                onClick={() => setSelectedStationName(null)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
+              <div className="space-y-3">
+                {selections.filter(s => s.station === selectedStationName).length === 0 ? (
+                  <div className="text-center text-gray-400 py-8">No passengers for this station.</div>
+                ) : (
+                  selections.filter(s => s.station === selectedStationName).map(sel => (
+                    <div key={sel._id} className="flex justify-between items-center bg-white/5 border border-white/10 p-4 rounded-xl hover:bg-white/10 transition-colors">
+                      <div>
+                        <div className="font-bold text-lg text-white">{sel.passengerName}</div>
+                        <div className="text-gray-400 text-sm">{sel.phone}</div>
+                      </div>
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <span className={`font-semibold ${sel.arrived ? 'text-green-400' : 'text-gray-500'}`}>
+                          {sel.arrived ? 'Arrived' : 'Not Arrived'}
+                        </span>
+                        <input 
+                          type="checkbox" 
+                          checked={sel.arrived || false}
+                          onChange={async (e) => {
+                            const newArrived = e.target.checked;
+                            setSelections(prev => prev.map(p => p._id === sel._id ? { ...p, arrived: newArrived } : p));
+                            await togglePassengerArrival(sel._id, newArrived);
+                          }}
+                          className="w-6 h-6 rounded border-gray-600 text-green-500 focus:ring-green-500 focus:ring-offset-gray-900"
+                        />
+                      </label>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+        </div>
+      </div>
     </div>
   );
 }

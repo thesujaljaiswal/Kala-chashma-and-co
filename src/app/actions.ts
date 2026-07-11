@@ -87,3 +87,14 @@ export async function getSelectionsByTrek(trekId: string) {
     return [];
   }
 }
+
+export async function togglePassengerArrival(selectionId: string, arrived: boolean) {
+  try {
+    await dbConnect();
+    await Selection.findByIdAndUpdate(selectionId, { arrived });
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to toggle arrival:", error);
+    return { success: false, error: "Failed to toggle arrival" };
+  }
+}
