@@ -3,15 +3,11 @@
 import dbConnect from "@/lib/mongodb";
 import Selection from "@/models/Selection";
 import Trek from "@/models/Trek";
+import crypto from "crypto";
 
 // Helper to generate a random 24 char hex string for the share URL
 function generateShareId() {
-  const chars = 'abcdef0123456789';
-  let result = '';
-  for (let i = 0; i < 24; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
+  return crypto.randomBytes(12).toString('hex');
 }
 
 // --- TREKS ---
@@ -63,20 +59,19 @@ export async function saveStationSelection(passengerName: string, phone: string,
   try {
     await dbConnect();
     
+    const normalizedPhone = phone.replace(/\D/g, '');
+
     // Check for duplicates!
-    const existing = await Selection.findOne({ passengerName, phone, station, trekId });
+    const existing = await Selection.findOne({ passengerName, normalizedPhone, station, trekId });
     if (existing) {
       return { success: false, error: "You have already registered for this station on this trek with these details!", ticketToken: existing.ticketToken };
     }
 
     const tokenChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let randStr = '';
-    for (let i = 0; i < 6; i++) {
-      randStr += tokenChars.charAt(Math.floor(Math.random() * tokenChars.length));
-    }
+    const randStr = Array.from({ length: 6 }, () => tokenChars[crypto.randomInt(0, tokenChars.length)]).join('');
     const ticketToken = `TRK-${randStr}`;
 
-    const newSelection = await Selection.create({ passengerName, phone, station, trekId, ticketToken });
+    const newSelection = await Selection.create({ passengerName, phone, normalizedPhone, station, trekId, ticketToken });
     return { success: true, id: newSelection._id.toString(), ticketToken };
   } catch (error) {
     console.error("Failed to save selection:", error);
@@ -119,9 +114,13 @@ export async function checkTicketByPhone(phone: string, trekId: string) {
     const regexPattern = cleanPhone.split('').join('\\D*') + '\\D*$';
     const phoneRegex = new RegExp(regexPattern);
 
-    // Find the selection for this phone number and trek using the flexible regex
+    // Find the selection for this phone number and trek.
+    // We check both the new highly-indexed normalizedPhone field, and fallback to regex for older tickets.
     const selection = await Selection.findOne({ 
-      phone: { $regex: phoneRegex }, 
+      $or: [
+        { normalizedPhone: cleanPhone },
+        { phone: { $regex: phoneRegex } }
+      ],
       trekId 
     }).sort({ createdAt: -1 }).lean();
     

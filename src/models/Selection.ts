@@ -3,6 +3,7 @@ import mongoose, { Schema, Document, models } from "mongoose";
 export interface ISelection extends Document {
   passengerName: string;
   phone: string;
+  normalizedPhone: string;
   station: string;
   trekId: mongoose.Types.ObjectId;
   ticketToken?: string;
@@ -13,12 +14,16 @@ export interface ISelection extends Document {
 const SelectionSchema = new Schema<ISelection>({
   passengerName: { type: String, required: true },
   phone: { type: String, required: true },
+  normalizedPhone: { type: String, required: true },
   station: { type: String, required: true },
   trekId: { type: Schema.Types.ObjectId, ref: 'Trek', required: true },
   ticketToken: { type: String, required: false },
   arrived: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
 });
+
+// Enforce database-level uniqueness to prevent concurrency race conditions
+SelectionSchema.index({ passengerName: 1, normalizedPhone: 1, station: 1, trekId: 1 }, { unique: true });
 
 // Force schema compilation in Next.js development (HMR)
 if (mongoose.models.Selection) {

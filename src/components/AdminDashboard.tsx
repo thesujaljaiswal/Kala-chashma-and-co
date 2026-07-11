@@ -238,6 +238,14 @@ export default function AdminDashboard() {
 
   const sortedSelections = getSortedSelections();
 
+  const formatTrekDate = (dateStr: string) => {
+    if (!dateStr) return "";
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) return dateStr;
+    const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  };
+
   if (isInitialLoading) {
     return (
       <div className="flex flex-col items-center justify-center w-full min-h-[calc(100vh-64px)] bg-black/20 gap-4">
@@ -481,7 +489,7 @@ export default function AdminDashboard() {
                     <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
                       <div>
                         <h3 className="text-xl font-bold text-white">{trek.name}</h3>
-                        <p className="text-orange-300 text-sm font-medium">{trek.date}</p>
+                        <p className="text-orange-300 text-sm font-medium">{formatTrekDate(trek.date)}</p>
                       </div>
                       
                       <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -566,7 +574,7 @@ export default function AdminDashboard() {
               >
                 <option value="" className="text-black">Select a Trek</option>
                 {treks.map(t => (
-                  <option key={t._id} value={t._id} className="text-black">{t.name} ({t.date})</option>
+                  <option key={t._id} value={t._id} className="text-black">{t.name} ({formatTrekDate(t.date)})</option>
                 ))}
               </select>
             </div>
@@ -673,7 +681,7 @@ export default function AdminDashboard() {
               >
                 <option value="" className="text-black">Select a Trek</option>
                 {treks.map(t => (
-                  <option key={t._id} value={t._id} className="text-black">{t.name} ({t.date})</option>
+                  <option key={t._id} value={t._id} className="text-black">{t.name} ({formatTrekDate(t.date)})</option>
                 ))}
               </select>
             </div>
@@ -735,10 +743,10 @@ export default function AdminDashboard() {
                   <div className="text-center text-gray-400 py-8">No passengers for this station.</div>
                 ) : (
                   selections.filter(s => s.station === selectedStationName).map(sel => (
-                    <div key={sel._id} className="flex justify-between items-center bg-white/5 border border-white/10 p-4 rounded-xl hover:bg-white/10 transition-colors">
-                      <div className="flex-1">
-                        <div className="font-bold text-lg text-white">{sel.passengerName}</div>
-                        <div className="flex items-center gap-4 mt-1">
+                    <div key={sel._id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-white/5 border border-white/10 p-4 rounded-xl hover:bg-white/10 transition-colors gap-3 sm:gap-2">
+                      <div className="flex-1 min-w-0 w-full">
+                        <div className="font-bold text-lg text-white truncate">{sel.passengerName}</div>
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1.5">
                           <span className="text-gray-400 text-sm">{sel.phone}</span>
                           <div className="flex items-center gap-2">
                             <a 
@@ -762,7 +770,7 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                       </div>
-                      <label className="flex items-center gap-3 cursor-pointer">
+                      <label className="flex items-center justify-between sm:justify-end gap-3 cursor-pointer w-full sm:w-auto pt-3 border-t border-white/10 sm:pt-0 sm:border-0 shrink-0">
                         <span className={`font-semibold ${sel.arrived ? 'text-green-400' : 'text-gray-500'}`}>
                           {sel.arrived ? 'Arrived' : 'Not Arrived'}
                         </span>

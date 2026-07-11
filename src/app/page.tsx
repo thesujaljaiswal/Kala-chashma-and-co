@@ -38,6 +38,14 @@ export default function Page() {
     }
   };
 
+  const formatTrekDate = (dateStr: string) => {
+    if (!dateStr) return "";
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) return dateStr;
+    const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  };
+
   if (status === "loading") {
     return (
       <div className="min-h-[calc(100vh-64px)] flex items-center justify-center">
@@ -60,13 +68,18 @@ export default function Page() {
       <main className="max-w-2xl w-full bg-white/10 backdrop-blur-xl rounded-3xl shadow-2xl p-12 border border-white/20 relative overflow-hidden text-center">
         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-orange-500 via-rose-600 to-amber-500"></div>
         
-        <h1 className="text-5xl md:text-7xl font-black mb-6 text-white drop-shadow-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-          KALA CHASHMA & CO.
+        <h1 className="text-5xl md:text-5xl font-black mb-6 text-white drop-shadow-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+          KaalaCHASMA & co
         </h1>
         
-        <p className="text-xl text-gray-300 font-medium">
+        <p className="text-xl text-gray-300 font-medium mb-4">
           Curating unforgettable journey experiences.
         </p>
+        
+        <a href="https://www.instagram.com/kaalachasma.co/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-orange-400 hover:text-orange-300 transition-colors font-medium">
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+          @kaalachasma.co
+        </a>
         
         {ticketData ? (
           <div className="mt-12 animate-fadeIn max-w-sm mx-auto">
@@ -112,7 +125,7 @@ export default function Page() {
                 >
                   <option value="" disabled className="text-black">Select a trek...</option>
                   {treks.map(t => (
-                    <option key={t._id} value={t._id} className="text-black">{t.name} ({t.date})</option>
+                    <option key={t._id} value={t._id} className="text-black">{t.name} ({formatTrekDate(t.date)})</option>
                   ))}
                 </select>
                 <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-400">

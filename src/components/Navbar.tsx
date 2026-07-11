@@ -14,7 +14,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-2">
             <Link href="/" className="text-xl font-bold text-white tracking-wide">
-              Kala Chashma <span className="text-orange-500">&</span> Co.
+              KaalaCHASMA <span className="text-orange-500">&</span> co
             </Link>
           </div>
 
