@@ -17,7 +17,7 @@ export default function proxy(request: NextRequest) {
   res.headers.set('X-Content-Type-Options', 'nosniff');
 
   // 2. Rate Limiting Logic (DDoS / Brute force protection)
-  const ip = request.ip ?? request.headers.get('x-forwarded-for') ?? 'unknown';
+  const ip = request.headers.get('x-forwarded-for') ?? 'unknown';
   
   // Garbage collection: Clean up old entries occasionally to prevent memory leaks
   if (Math.random() < 0.01) {
