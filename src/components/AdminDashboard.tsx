@@ -62,6 +62,24 @@ export default function AdminDashboard() {
     setStations(updated);
   };
 
+  const moveStationUp = (index: number) => {
+    if (index === 0) return;
+    const updated = [...stations];
+    const temp = updated[index - 1];
+    updated[index - 1] = updated[index];
+    updated[index] = temp;
+    setStations(updated);
+  };
+
+  const moveStationDown = (index: number) => {
+    if (index === stations.length - 1) return;
+    const updated = [...stations];
+    const temp = updated[index + 1];
+    updated[index + 1] = updated[index];
+    updated[index] = temp;
+    setStations(updated);
+  };
+
   const handleDragStart = (e: React.DragEvent, index: number) => {
     setDraggedStationIdx(index);
     e.dataTransfer.effectAllowed = "move";
@@ -279,7 +297,7 @@ export default function AdminDashboard() {
                       onDragEnd={handleDragEnd}
                       className={`flex gap-3 items-center bg-black/10 p-2 rounded-2xl border border-white/5 cursor-grab active:cursor-grabbing transition-transform ${draggedStationIdx === index ? 'opacity-40 scale-[0.98]' : ''}`}
                     >
-                      <div className="text-gray-500 px-1 shrink-0">
+                      <div className="text-gray-500 px-1 shrink-0 hidden md:block">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8h16M4 16h16"></path></svg>
                       </div>
                       <div className="w-8 h-8 rounded-full bg-white/10 text-white font-bold flex items-center justify-center text-xs shrink-0">
@@ -303,6 +321,27 @@ export default function AdminDashboard() {
                           onChange={(e) => handleStationChange(index, "time", e.target.value)}
                           className="w-full bg-transparent border-none text-white focus:outline-none text-sm"
                         />
+                      </div>
+                      
+                      <div className="flex flex-col gap-1 border-l border-white/10 pl-2 md:hidden">
+                        <button
+                          type="button"
+                          onClick={() => moveStationUp(index)}
+                          disabled={index === 0}
+                          className="text-gray-500 hover:text-orange-400 disabled:opacity-30 disabled:hover:text-gray-500 transition-colors"
+                          title="Move Up"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 15l7-7 7 7"></path></svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveStationDown(index)}
+                          disabled={index === stations.length - 1}
+                          className="text-gray-500 hover:text-orange-400 disabled:opacity-30 disabled:hover:text-gray-500 transition-colors"
+                          title="Move Down"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
                       </div>
 
                       {stations.length > 1 && (
