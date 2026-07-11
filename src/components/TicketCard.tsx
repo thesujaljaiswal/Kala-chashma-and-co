@@ -60,14 +60,41 @@ export default function TicketCard({ ticket }: { ticket: TicketData }) {
         className="w-full max-w-sm bg-white rounded-3xl overflow-hidden shadow-2xl relative border-2 border-gray-200"
       >
         {/* Ticket Header */}
-        <div className="bg-gradient-to-br from-gray-900 to-black text-white p-6 relative">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+        <div className="bg-gradient-to-br from-[#1E4E8C] to-[#E86A28] text-white p-6 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl z-0"></div>
+          
+          {/* Background Topographic & Mandala Art */}
+          <div className="absolute inset-0 pointer-events-none z-0">
+            {/* Topography Waves */}
+            <svg viewBox="0 0 400 150" preserveAspectRatio="none" className="absolute inset-0 w-full h-full opacity-10 text-white" fill="none" stroke="currentColor" strokeWidth="0.5">
+               <path d="M-50 100 Q 50 50 150 120 T 350 80 T 450 110" />
+               <path d="M-50 80 Q 50 30 150 100 T 350 60 T 450 90" />
+               <path d="M-50 60 Q 50 10 150 80 T 350 40 T 450 70" />
+               <path d="M-50 40 Q 50 -10 150 60 T 350 20 T 450 50" strokeDasharray="4 4" />
+               <path d="M-50 20 Q 50 -30 150 40 T 350 0 T 450 30" strokeDasharray="2 6" />
+            </svg>
+            
+            {/* Corner Mandala */}
+            <div className="absolute -top-16 -right-16 w-48 h-48 opacity-[0.12] text-white transform rotate-12">
+              <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1" className="w-full h-full">
+                {[...Array(16)].map((_, i) => (
+                  <g key={i} transform={`rotate(${i * 22.5} 50 50)`}>
+                    <path d="M50 5 Q55 25 50 50 Q45 25 50 5" />
+                    <circle cx="50" cy="10" r="1.5" fill="currentColor"/>
+                  </g>
+                ))}
+                <circle cx="50" cy="50" r="42" strokeDasharray="1 3" />
+                <circle cx="50" cy="50" r="30" strokeDasharray="3 6" />
+              </svg>
+            </div>
+          </div>
+
           <div className="relative z-10 flex justify-between items-start">
             <div>
-              <h2 className="text-2xl font-black tracking-tight">{ticket.trekName}</h2>
-              <p className="text-gray-400 font-medium text-sm mt-1">{formatTrekDate(ticket.trekDate)}</p>
+              <h2 className="text-2xl font-black tracking-tight drop-shadow-md">{ticket.trekName}</h2>
+              <p className="text-gray-100/80 font-medium text-sm mt-1 drop-shadow-sm">{formatTrekDate(ticket.trekDate)}</p>
             </div>
-            <div className="bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+            <div className="bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-[0_4px_15px_rgba(232,106,40,0.4)] border border-orange-400/50 backdrop-blur-sm">
               CONFIRMED
             </div>
           </div>
@@ -81,8 +108,21 @@ export default function TicketCard({ ticket }: { ticket: TicketData }) {
         </div>
 
         {/* Ticket Body */}
-        <div className="p-6 bg-white">
-          <div className="space-y-5">
+        <div className="p-6 bg-white relative overflow-hidden">
+          {/* Watermark Art */}
+          <div className="absolute -bottom-16 -right-16 w-64 h-64 opacity-15 pointer-events-none text-[#E86A28]">
+            <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="1">
+              {[...Array(12)].map((_, i) => (
+                <g key={i} transform={`rotate(${i * 30} 50 50)`}>
+                  <path d="M50 10 Q60 30 50 50 Q40 30 50 10" />
+                  <path d="M50 20 Q70 40 50 60 Q30 40 50 20" />
+                </g>
+              ))}
+              <circle cx="50" cy="50" r="40" />
+              <circle cx="50" cy="50" r="45" strokeDasharray="2 4" />
+            </svg>
+          </div>
+          <div className="space-y-5 relative z-10">
             <div>
               <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Passenger</p>
               <p className="text-gray-900 font-bold text-xl">{ticket.passengerName}</p>

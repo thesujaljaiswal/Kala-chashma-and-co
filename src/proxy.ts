@@ -32,8 +32,8 @@ export default function proxy(request: NextRequest) {
   if (ip !== 'unknown') {
     const now = Date.now();
     const windowMs = 60000; // 1 minute window
-    // Stricter limits for authentication routes, generous for standard pages
-    const maxRequests = request.nextUrl.pathname.startsWith('/api') || request.nextUrl.pathname === '/login' ? 20 : 150;
+    // NextAuth polls /api/auth frequently. 20 is too strict and breaks login. 
+    const maxRequests = request.nextUrl.pathname.startsWith('/api') || request.nextUrl.pathname === '/login' ? 200 : 300;
 
     const rateLimitData = rateLimitMap.get(ip);
     
@@ -41,6 +41,12 @@ export default function proxy(request: NextRequest) {
       if (now - rateLimitData.timestamp < windowMs) {
         if (rateLimitData.count >= maxRequests) {
           // Block the request completely
+          if (request.nextUrl.pathname.startsWith('/api')) {
+            return NextResponse.json({ error: 'Too Many Requests', message: 'Please try again later.' }, { 
+              status: 429,
+              headers: { 'Retry-After': '60' }
+            });
+          }
           return new NextResponse('Too Many Requests. Please try again later.', { 
             status: 429,
             headers: {

@@ -34,7 +34,16 @@ export default function AdminDashboard() {
   const fetchTreks = async () => {
     const data = await getTreks();
     setTreks(data);
-    if (data.length > 0 && !selectedTrekId) {
+    
+    const params = new URLSearchParams(window.location.search);
+    const savedTrekId = params.get("trek");
+    const currentTrekId = selectedTrekId || savedTrekId;
+    const trekExists = data.some(t => t._id === currentTrekId);
+
+    if (trekExists && currentTrekId) {
+      setSelectedTrekId(currentTrekId);
+      return currentTrekId;
+    } else if (data.length > 0) {
       setSelectedTrekId(data[0]._id);
       return data[0]._id;
     }
@@ -42,6 +51,12 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const savedTab = params.get("tab") as "onboarding" | "manage" | "checkin";
+    if (savedTab) {
+      setActiveTab(savedTab);
+    }
+
     const initialize = async () => {
       setIsInitialLoading(true);
       const firstId = await fetchTreks();
@@ -52,6 +67,22 @@ export default function AdminDashboard() {
     };
     initialize();
   }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", activeTab);
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && selectedTrekId) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("trek", selectedTrekId);
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [selectedTrekId]);
 
   useEffect(() => {
     if (selectedTrekId && !isInitialLoading) {

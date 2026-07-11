@@ -30,12 +30,12 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-gradient-to-br from-orange-950 via-red-950 to-stone-950">
-        <div className="fixed inset-0 z-0 pointer-events-none opacity-30">
+      <body className="min-h-full flex flex-col bg-[#FAF9F6] text-gray-900">
+        <div className="fixed inset-0 z-0 pointer-events-none opacity-20">
           <PixelBlast
             variant="circle"
             pixelSize={6}
-            color="#ff6b00"
+            color="#E86A28"
             patternScale={3}
             patternDensity={1.2}
             pixelSizeJitter={0.5}
