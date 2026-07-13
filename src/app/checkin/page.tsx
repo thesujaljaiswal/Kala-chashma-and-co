@@ -87,8 +87,8 @@ export default function CheckinPage() {
       <AdminSidebar activeTab="checkin" title="Station Check-in" />
 
       <div className="flex-1 flex flex-col w-full h-[calc(100vh-64px)] overflow-y-auto">
-        <div className="p-4 md:p-8 w-full max-w-6xl mx-auto pb-24 pt-20 md:pt-8">
-          <div className="bg-white/5 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+        <div className="p-3 sm:p-4 md:p-8 w-full max-w-6xl mx-auto pb-24 pt-20 md:pt-8">
+          <div className="bg-white/5 backdrop-blur-xl border border-white/20 rounded-3xl p-4 sm:p-6 lg:p-8 shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-500 to-emerald-500"></div>
             
             <div className="mb-8 flex flex-col md:flex-row gap-4 justify-between items-center bg-black/20 p-4 rounded-2xl border border-white/5">
@@ -112,7 +112,7 @@ export default function CheckinPage() {
               <div className="mb-8 bg-black/20 p-6 rounded-2xl border border-white/5">
                 <h3 className="text-lg font-bold text-white mb-4">Overall Trek Status</h3>
                 <div className="flex flex-col md:flex-row gap-6 items-center">
-                  <div className="flex-1 w-full flex gap-4 text-center">
+                  <div className="flex-1 w-full flex gap-2 sm:gap-4 text-center">
                     <div className="flex-1 bg-white/5 p-4 rounded-xl border border-white/10">
                       <div className="text-gray-400 text-sm mb-1">Total</div>
                       <div className="text-3xl font-bold text-white">{selections.length}</div>
@@ -205,7 +205,7 @@ export default function CheckinPage() {
                       <div className="text-center text-gray-400 py-8">No passengers for this station.</div>
                     ) : (
                       selections.filter(s => s.station === selectedStationName).map(sel => (
-                        <div key={sel._id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-white/5 border border-white/10 p-4 rounded-xl hover:bg-white/10 transition-colors gap-3 sm:gap-2">
+                        <div key={sel._id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-white/5 border border-white/10 p-3 sm:p-4 rounded-xl hover:bg-white/10 transition-colors gap-3 sm:gap-2">
                           <div className="flex-1 min-w-0 w-full">
                             <div className="font-bold text-lg text-white truncate">{sel.passengerName}</div>
                             <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1.5">

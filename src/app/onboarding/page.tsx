@@ -139,8 +139,8 @@ export default function OnboardingPage() {
       <AdminSidebar activeTab="onboarding" title="Onboarding List" />
 
       <div className="flex-1 flex flex-col w-full h-[calc(100vh-64px)] overflow-y-auto">
-        <div className="p-4 md:p-8 w-full max-w-6xl mx-auto pb-24 pt-20 md:pt-8">
-          <div className="bg-white/5 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+        <div className="p-3 sm:p-4 md:p-8 w-full max-w-6xl mx-auto pb-24 pt-20 md:pt-8">
+          <div className="bg-white/5 backdrop-blur-xl border border-white/20 rounded-3xl p-4 sm:p-6 lg:p-8 shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-amber-500"></div>
             
             <div className="mb-6 flex flex-col md:flex-row gap-4 justify-between items-center bg-black/20 p-4 rounded-2xl border border-white/5">
@@ -185,9 +185,9 @@ export default function OnboardingPage() {
                 </div>
               ) : (
                 sortedSelections.map((sel) => (
-                  <div key={sel._id} className="bg-black/20 border border-white/10 p-4 rounded-2xl flex flex-col gap-3">
-                    <div className="flex justify-between items-start">
-                      <h3 className="text-lg font-bold text-white">{sel.passengerName}</h3>
+                  <div key={sel._id} className="bg-black/20 border border-white/10 p-4 rounded-2xl flex flex-col gap-2 sm:gap-3">
+                    <div className="flex justify-between items-start gap-2">
+                      <h3 className="text-base sm:text-lg font-bold text-white truncate max-w-[140px] xs:max-w-[180px]">{sel.passengerName}</h3>
                       <span className="bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-500/30 px-3 py-1 rounded-full text-xs font-semibold text-orange-200">
                         {sel.station}
                       </span>

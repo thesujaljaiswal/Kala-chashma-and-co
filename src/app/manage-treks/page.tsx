@@ -190,10 +190,10 @@ export default function ManageTreksPage() {
       <AdminSidebar activeTab="manage" title="Manage Treks" />
 
       <div className="flex-1 flex flex-col w-full h-[calc(100vh-64px)] overflow-y-auto">
-        <div className="p-4 md:p-8 w-full max-w-6xl mx-auto pb-24 pt-20 md:pt-8">
+        <div className="p-3 sm:p-4 md:p-8 w-full max-w-6xl mx-auto pb-24 pt-20 md:pt-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Create / Edit Trek Section */}
-            <div className="lg:col-span-7 bg-white/5 backdrop-blur-xl border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden h-fit">
+            <div className="lg:col-span-7 bg-white/5 backdrop-blur-xl border border-white/20 rounded-3xl p-4 sm:p-6 lg:p-8 shadow-2xl relative overflow-hidden h-fit">
               <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${editingTrekId ? "from-yellow-400 to-orange-500" : "from-rose-600 to-red-700"}`}></div>
               
               <div className="flex justify-between items-center mb-6">
@@ -274,7 +274,7 @@ export default function ManageTreksPage() {
                             placeholder="Station Name"
                           />
                         </div>
-                        <div className="w-[110px] shrink-0 border-l border-white/10 pl-3">
+                        <div className="w-[90px] sm:w-[110px] shrink-0 border-l border-white/10 pl-2 sm:pl-3">
                           <input
                             type="time"
                             required
@@ -342,7 +342,7 @@ export default function ManageTreksPage() {
                   </div>
                 ) : (
                   treks.map(trek => (
-                    <div key={trek._id} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-6 hover:bg-white/10 transition-colors group">
+                    <div key={trek._id} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-4 sm:p-6 hover:bg-white/10 transition-colors group">
                       <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
                         <div>
                           <h3 className="text-xl font-bold text-white">{trek.name}</h3>

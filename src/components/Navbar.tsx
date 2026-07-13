@@ -58,31 +58,31 @@ export default function Navbar() {
         </motion.div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center gap-2">
-            <Link href="/" className="text-xl font-bold text-white tracking-wide">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 relative z-10">
+        <div className="flex items-center justify-between h-16 gap-2">
+          <div className="flex items-center">
+            <Link href="/" className="text-sm sm:text-xl font-bold text-white tracking-wide truncate max-w-[150px] xs:max-w-[200px] sm:max-w-none">
               KaalaCHASMA <span className="text-orange-500">&</span> co
             </Link>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             {status === "loading" ? (
               <div className="w-20 h-6 bg-white/10 animate-pulse rounded-md"></div>
             ) : session?.user ? (
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 sm:gap-4 shrink-0">
                 <span className="text-gray-300 text-sm hidden sm:block z-10">
                   Hello, <span className="font-semibold text-white">{session.user.name}</span>
                 </span>
                 <Link
                   href="/manage-treks"
-                  className="text-sm px-4 py-2 bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white font-medium rounded-lg transition-all shadow-lg z-10"
+                  className="text-xs sm:text-sm px-2.5 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white font-medium rounded-lg transition-all shadow-lg z-10 whitespace-nowrap"
                 >
                   Dashboard
                 </Link>
                 <button
                   onClick={() => signOut({ callbackUrl: '/login' })}
-                  className="text-sm px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors border border-white/5 z-10"
+                  className="text-xs sm:text-sm px-2.5 py-1.5 sm:px-4 sm:py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors border border-white/5 z-10 whitespace-nowrap"
                 >
                   Sign Out
                 </button>
@@ -90,7 +90,7 @@ export default function Navbar() {
             ) : pathname !== "/login" ? (
               <Link 
                 href="/login"
-                className="text-sm px-5 py-2 bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white font-medium rounded-lg transition-all shadow-lg"
+                className="text-xs sm:text-sm px-4 py-1.5 sm:px-5 sm:py-2 bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white font-medium rounded-lg transition-all shadow-lg whitespace-nowrap"
               >
                 Admin Login
               </Link>
