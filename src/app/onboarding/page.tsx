@@ -4,14 +4,14 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import AdminSidebar from "@/components/AdminSidebar";
-import { getTreks, getSelectionsByTrek } from "@/app/actions";
+import { getEvents, getSelectionsByEvent } from "@/app/actions";
 
 export default function OnboardingPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  const [treks, setTreks] = useState<any[]>([]);
-  const [selectedTrekId, setSelectedTrekId] = useState<string>("");
+  const [events, setEvents] = useState<any[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [selections, setSelections] = useState<any[]>([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   
@@ -25,12 +25,12 @@ export default function OnboardingPage() {
     }
   }, [status, router]);
 
-  const fetchTreks = async () => {
-    const data = await getTreks();
-    setTreks(data);
+  const fetchEvents = async () => {
+    const data = await getEvents();
+    setEvents(data);
     
     if (data.length > 0) {
-      setSelectedTrekId(data[0]._id);
+      setSelectedEventId(data[0]._id);
       return data[0]._id;
     }
     return null;
@@ -40,7 +40,7 @@ export default function OnboardingPage() {
     const initialize = async () => {
       if (status !== "authenticated") return;
       setIsInitialLoading(true);
-      const firstId = await fetchTreks();
+      const firstId = await fetchEvents();
       if (firstId) {
         await fetchSelections(firstId);
       }
@@ -50,15 +50,15 @@ export default function OnboardingPage() {
   }, [status]);
 
   useEffect(() => {
-    if (selectedTrekId && !isInitialLoading) {
-      fetchSelections(selectedTrekId);
-    } else if (!selectedTrekId && !isInitialLoading) {
+    if (selectedEventId && !isInitialLoading) {
+      fetchSelections(selectedEventId);
+    } else if (!selectedEventId && !isInitialLoading) {
       setSelections([]);
     }
-  }, [selectedTrekId]);
+  }, [selectedEventId]);
 
   const fetchSelections = async (id: string) => {
-    const data = await getSelectionsByTrek(id);
+    const data = await getSelectionsByEvent(id);
     setSelections(data);
   };
 
@@ -72,14 +72,14 @@ export default function OnboardingPage() {
   };
 
   const getSortedSelections = () => {
-    const activeTrek = treks.find(t => t._id === selectedTrekId);
+    const activeEvent = events.find(t => t._id === selectedEventId);
     
     return [...selections].sort((a, b) => {
       let aRank = 9999;
       let bRank = 9999;
-      if (activeTrek && activeTrek.stations) {
-        const aIdx = activeTrek.stations.findIndex((s: any) => s.name === a.station);
-        const bIdx = activeTrek.stations.findIndex((s: any) => s.name === b.station);
+      if (activeEvent && activeEvent.stations) {
+        const aIdx = activeEvent.stations.findIndex((s: any) => s.name === a.station);
+        const bIdx = activeEvent.stations.findIndex((s: any) => s.name === b.station);
         if (aIdx !== -1) aRank = aIdx;
         if (bIdx !== -1) bRank = bIdx;
       }
@@ -109,7 +109,7 @@ export default function OnboardingPage() {
     return sortOrder === "asc" ? <span className="text-orange-400 ml-1 text-xs">↑</span> : <span className="text-orange-400 ml-1 text-xs">↓</span>;
   };
 
-  const formatTrekDate = (dateStr: string) => {
+  const formatEventDate = (dateStr: string) => {
     if (!dateStr) return "";
     const parts = dateStr.split("-");
     if (parts.length !== 3) return dateStr;
@@ -146,15 +146,15 @@ export default function OnboardingPage() {
             <div className="mb-6 flex flex-col md:flex-row gap-4 justify-between items-center bg-black/20 p-4 rounded-2xl border border-white/5">
               <h2 className="text-xl font-bold text-white">Passenger Manifest</h2>
               <div className="flex items-center gap-3 w-full md:w-auto">
-                <span className="text-sm text-gray-400 font-medium">Filter by Trek:</span>
+                <span className="text-sm text-gray-400 font-medium">Filter by Event:</span>
                 <select
-                  value={selectedTrekId}
-                  onChange={(e) => setSelectedTrekId(e.target.value)}
+                  value={selectedEventId}
+                  onChange={(e) => setSelectedEventId(e.target.value)}
                   className="bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-full md:w-64 font-medium appearance-none"
                 >
-                  <option value="" className="text-black">Select a Trek</option>
-                  {treks.map(t => (
-                    <option key={t._id} value={t._id} className="text-black">{t.name} ({formatTrekDate(t.date)})</option>
+                  <option value="" className="text-black">Select a Event</option>
+                  {events.map(t => (
+                    <option key={t._id} value={t._id} className="text-black">{t.name} ({formatEventDate(t.date)})</option>
                   ))}
                 </select>
               </div>
@@ -181,7 +181,7 @@ export default function OnboardingPage() {
             <div className="block md:hidden space-y-4">
               {sortedSelections.length === 0 ? (
                 <div className="py-12 text-center text-gray-400 font-medium bg-black/20 rounded-2xl border border-white/10">
-                  No passengers have boarded this trek yet.
+                  No passengers have boarded this event yet.
                 </div>
               ) : (
                 sortedSelections.map((sel) => (
@@ -221,7 +221,7 @@ export default function OnboardingPage() {
                   {sortedSelections.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="py-12 text-center text-gray-400 font-medium">
-                        No passengers have boarded this trek yet.
+                        No passengers have boarded this event yet.
                       </td>
                     </tr>
                   ) : (

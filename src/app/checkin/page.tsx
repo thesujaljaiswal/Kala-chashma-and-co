@@ -4,14 +4,14 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import AdminSidebar from "@/components/AdminSidebar";
-import { getTreks, getSelectionsByTrek, togglePassengerArrival } from "@/app/actions";
+import { getEvents, getSelectionsByEvent, togglePassengerArrival } from "@/app/actions";
 
 export default function CheckinPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  const [treks, setTreks] = useState<any[]>([]);
-  const [selectedTrekId, setSelectedTrekId] = useState<string>("");
+  const [events, setEvents] = useState<any[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [selections, setSelections] = useState<any[]>([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [selectedStationName, setSelectedStationName] = useState<string | null>(null);
@@ -22,12 +22,12 @@ export default function CheckinPage() {
     }
   }, [status, router]);
 
-  const fetchTreks = async () => {
-    const data = await getTreks();
-    setTreks(data);
+  const fetchEvents = async () => {
+    const data = await getEvents();
+    setEvents(data);
     
     if (data.length > 0) {
-      setSelectedTrekId(data[0]._id);
+      setSelectedEventId(data[0]._id);
       return data[0]._id;
     }
     return null;
@@ -37,7 +37,7 @@ export default function CheckinPage() {
     const initialize = async () => {
       if (status !== "authenticated") return;
       setIsInitialLoading(true);
-      const firstId = await fetchTreks();
+      const firstId = await fetchEvents();
       if (firstId) {
         await fetchSelections(firstId);
       }
@@ -47,19 +47,19 @@ export default function CheckinPage() {
   }, [status]);
 
   useEffect(() => {
-    if (selectedTrekId && !isInitialLoading) {
-      fetchSelections(selectedTrekId);
-    } else if (!selectedTrekId && !isInitialLoading) {
+    if (selectedEventId && !isInitialLoading) {
+      fetchSelections(selectedEventId);
+    } else if (!selectedEventId && !isInitialLoading) {
       setSelections([]);
     }
-  }, [selectedTrekId]);
+  }, [selectedEventId]);
 
   const fetchSelections = async (id: string) => {
-    const data = await getSelectionsByTrek(id);
+    const data = await getSelectionsByEvent(id);
     setSelections(data);
   };
 
-  const formatTrekDate = (dateStr: string) => {
+  const formatEventDate = (dateStr: string) => {
     if (!dateStr) return "";
     const parts = dateStr.split("-");
     if (parts.length !== 3) return dateStr;
@@ -94,23 +94,23 @@ export default function CheckinPage() {
             <div className="mb-8 flex flex-col md:flex-row gap-4 justify-between items-center bg-black/20 p-4 rounded-2xl border border-white/5">
               <h2 className="text-xl font-bold text-white">Station Check-in</h2>
               <div className="flex items-center gap-3 w-full md:w-auto">
-                <span className="text-sm text-gray-400 font-medium">Select Trek:</span>
+                <span className="text-sm text-gray-400 font-medium">Select Event:</span>
                 <select
-                  value={selectedTrekId}
-                  onChange={(e) => setSelectedTrekId(e.target.value)}
+                  value={selectedEventId}
+                  onChange={(e) => setSelectedEventId(e.target.value)}
                   className="bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-full md:w-64 font-medium appearance-none"
                 >
-                  <option value="" className="text-black">Select a Trek</option>
-                  {treks.map(t => (
-                    <option key={t._id} value={t._id} className="text-black">{t.name} ({formatTrekDate(t.date)})</option>
+                  <option value="" className="text-black">Select a Event</option>
+                  {events.map(t => (
+                    <option key={t._id} value={t._id} className="text-black">{t.name} ({formatEventDate(t.date)})</option>
                   ))}
                 </select>
               </div>
             </div>
 
-            {selectedTrekId && (
+            {selectedEventId && (
               <div className="mb-8 bg-black/20 p-6 rounded-2xl border border-white/5">
-                <h3 className="text-lg font-bold text-white mb-4">Overall Trek Status</h3>
+                <h3 className="text-lg font-bold text-white mb-4">Overall Event Status</h3>
                 <div className="flex flex-col md:flex-row gap-6 items-center">
                   <div className="flex-1 w-full flex gap-2 sm:gap-4 text-center">
                     <div className="flex-1 bg-white/5 p-4 rounded-xl border border-white/10">
@@ -151,7 +151,7 @@ export default function CheckinPage() {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {treks.find(t => t._id === selectedTrekId)?.stations.map((station: any, idx: number) => {
+              {events.find(t => t._id === selectedEventId)?.stations.map((station: any, idx: number) => {
                 const stationSelections = selections.filter(s => s.station === station.name);
                 const total = stationSelections.length;
                 const arrived = stationSelections.filter(s => s.arrived).length;

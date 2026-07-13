@@ -1,50 +1,50 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getTreks, getSelectionsByTrek, createTrek, updateTrek, deleteTrek, togglePassengerArrival } from "@/app/actions";
+import { getEvents, getSelectionsByEvent, createEvent, updateEvent, deleteEvent, togglePassengerArrival } from "@/app/actions";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<"onboarding" | "manage" | "checkin">("manage");
-  const [treks, setTreks] = useState<any[]>([]);
-  const [selectedTrekId, setSelectedTrekId] = useState<string>("");
+  const [events, setEvents] = useState<any[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [selections, setSelections] = useState<any[]>([]);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
   const [selectedStationName, setSelectedStationName] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [expandedTreks, setExpandedTreks] = useState<Record<string, boolean>>({});
+  const [expandedEvents, setExpandedEvents] = useState<Record<string, boolean>>({});
 
-  const toggleTrek = (id: string) => {
-    setExpandedTreks(prev => ({...prev, [id]: !prev[id]}));
+  const toggleEvent = (id: string) => {
+    setExpandedEvents(prev => ({...prev, [id]: !prev[id]}));
   };
   
   // Sorting State
   const [sortField, setSortField] = useState<"name" | "station" | "time">("time");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   
-  // Create / Edit Trek Form State
-  const [editingTrekId, setEditingTrekId] = useState<string | null>(null);
-  const [newTrekName, setNewTrekName] = useState("");
-  const [newTrekDate, setNewTrekDate] = useState("");
+  // Create / Edit Event Form State
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [newEventName, setNewEventName] = useState("");
+  const [newEventDate, setNewEventDate] = useState("");
   const [stations, setStations] = useState([{ name: "", time: "" }]);
   const [isSaving, setIsSaving] = useState(false);
   const [draggedStationIdx, setDraggedStationIdx] = useState<number | null>(null);
 
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
-  const fetchTreks = async () => {
-    const data = await getTreks();
-    setTreks(data);
+  const fetchEvents = async () => {
+    const data = await getEvents();
+    setEvents(data);
     
     const params = new URLSearchParams(window.location.search);
-    const savedTrekId = params.get("trek");
-    const currentTrekId = selectedTrekId || savedTrekId;
-    const trekExists = data.some((t: any) => t._id === currentTrekId);
+    const savedEventId = params.get("event");
+    const currentEventId = selectedEventId || savedEventId;
+    const eventExists = data.some((t: any) => t._id === currentEventId);
 
-    if (trekExists && currentTrekId) {
-      setSelectedTrekId(currentTrekId);
-      return currentTrekId;
+    if (eventExists && currentEventId) {
+      setSelectedEventId(currentEventId);
+      return currentEventId;
     } else if (data.length > 0) {
-      setSelectedTrekId(data[0]._id);
+      setSelectedEventId(data[0]._id);
       return data[0]._id;
     }
     return null;
@@ -59,7 +59,7 @@ export default function AdminDashboard() {
 
     const initialize = async () => {
       setIsInitialLoading(true);
-      const firstId = await fetchTreks();
+      const firstId = await fetchEvents();
       if (firstId) {
         await fetchSelections(firstId);
       }
@@ -77,23 +77,23 @@ export default function AdminDashboard() {
   }, [activeTab]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && selectedTrekId) {
+    if (typeof window !== 'undefined' && selectedEventId) {
       const url = new URL(window.location.href);
-      url.searchParams.set("trek", selectedTrekId);
+      url.searchParams.set("event", selectedEventId);
       window.history.replaceState({}, "", url.toString());
     }
-  }, [selectedTrekId]);
+  }, [selectedEventId]);
 
   useEffect(() => {
-    if (selectedTrekId && !isInitialLoading) {
-      fetchSelections(selectedTrekId);
-    } else if (!selectedTrekId && !isInitialLoading) {
+    if (selectedEventId && !isInitialLoading) {
+      fetchSelections(selectedEventId);
+    } else if (!selectedEventId && !isInitialLoading) {
       setSelections([]);
     }
-  }, [selectedTrekId]);
+  }, [selectedEventId]);
 
   const fetchSelections = async (id: string) => {
-    const data = await getSelectionsByTrek(id);
+    const data = await getSelectionsByEvent(id);
     setSelections(data);
   };
 
@@ -156,35 +156,35 @@ export default function AdminDashboard() {
   };
 
   const resetForm = () => {
-    setEditingTrekId(null);
-    setNewTrekName("");
-    setNewTrekDate("");
+    setEditingEventId(null);
+    setNewEventName("");
+    setNewEventDate("");
     setStations([{ name: "", time: "" }]);
   };
 
-  const handleEditInit = (trek: any) => {
-    setEditingTrekId(trek._id);
-    setNewTrekName(trek.name);
-    setNewTrekDate(trek.date);
-    setStations(trek.stations.length > 0 ? trek.stations.map((s:any) => ({ name: s.name, time: s.time })) : [{ name: "", time: "" }]);
+  const handleEditInit = (event: any) => {
+    setEditingEventId(event._id);
+    setNewEventName(event.name);
+    setNewEventDate(event.date);
+    setStations(event.stations.length > 0 ? event.stations.map((s:any) => ({ name: s.name, time: s.time })) : [{ name: "", time: "" }]);
     // Scroll to top of the form smoothly
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (window.confirm(`Are you sure you want to permanently delete "${name}"? This will also wipe all passenger records for this trek.`)) {
-      const result = await deleteTrek(id);
+    if (window.confirm(`Are you sure you want to permanently delete "${name}"? This will also wipe all passenger records for this event.`)) {
+      const result = await deleteEvent(id);
       if (result.success) {
-        if (editingTrekId === id) resetForm();
-        if (selectedTrekId === id) setSelectedTrekId("");
-        fetchTreks();
+        if (editingEventId === id) resetForm();
+        if (selectedEventId === id) setSelectedEventId("");
+        fetchEvents();
       } else {
-        alert("Failed to delete trek.");
+        alert("Failed to delete event.");
       }
     }
   };
 
-  const handleSubmitTrek = async (e: React.FormEvent) => {
+  const handleSubmitEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     const validStations = stations.filter(s => s.name.trim() !== "" && s.time.trim() !== "");
     if (validStations.length === 0) {
@@ -194,25 +194,25 @@ export default function AdminDashboard() {
     
     setIsSaving(true);
     let result;
-    if (editingTrekId) {
-      result = await updateTrek(editingTrekId, newTrekName, newTrekDate, validStations);
+    if (editingEventId) {
+      result = await updateEvent(editingEventId, newEventName, newEventDate, validStations);
     } else {
-      result = await createTrek(newTrekName, newTrekDate, validStations);
+      result = await createEvent(newEventName, newEventDate, validStations);
     }
     setIsSaving(false);
 
     if (result.success) {
       resetForm();
-      fetchTreks();
+      fetchEvents();
     } else {
-      alert("Failed to save trek.");
+      alert("Failed to save event.");
     }
   };
 
-  const copyLink = (trekShareId: string) => {
-    const link = `${window.location.origin}/${trekShareId}`;
+  const copyLink = (eventShareId: string) => {
+    const link = `${window.location.origin}/${eventShareId}`;
     navigator.clipboard.writeText(link);
-    setCopiedLink(trekShareId);
+    setCopiedLink(eventShareId);
     setTimeout(() => setCopiedLink(null), 3000);
   };
 
@@ -226,15 +226,15 @@ export default function AdminDashboard() {
   };
 
   const getSortedSelections = () => {
-    const activeTrek = treks.find(t => t._id === selectedTrekId);
+    const activeEvent = events.find(t => t._id === selectedEventId);
     
     return [...selections].sort((a, b) => {
       // 1. Primary Sort by Station Rank (Ascending)
       let aRank = 9999;
       let bRank = 9999;
-      if (activeTrek && activeTrek.stations) {
-        const aIdx = activeTrek.stations.findIndex((s: any) => s.name === a.station);
-        const bIdx = activeTrek.stations.findIndex((s: any) => s.name === b.station);
+      if (activeEvent && activeEvent.stations) {
+        const aIdx = activeEvent.stations.findIndex((s: any) => s.name === a.station);
+        const bIdx = activeEvent.stations.findIndex((s: any) => s.name === b.station);
         if (aIdx !== -1) aRank = aIdx;
         if (bIdx !== -1) bRank = bIdx;
       }
@@ -269,7 +269,7 @@ export default function AdminDashboard() {
 
   const sortedSelections = getSortedSelections();
 
-  const formatTrekDate = (dateStr: string) => {
+  const formatEventDate = (dateStr: string) => {
     if (!dateStr) return "";
     const parts = dateStr.split("-");
     if (parts.length !== 3) return dateStr;
@@ -318,7 +318,7 @@ export default function AdminDashboard() {
               }`}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
-              Manage Treks
+              Manage Events
             </button>
             <button
               onClick={() => { setActiveTab("onboarding"); setIsSidebarOpen(false); }}
@@ -354,7 +354,7 @@ export default function AdminDashboard() {
               <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
             </button>
             <h2 className="text-lg font-bold text-white tracking-wide">
-              {activeTab === "manage" && "Manage Treks"}
+              {activeTab === "manage" && "Manage Events"}
               {activeTab === "onboarding" && "Onboarding List"}
               {activeTab === "checkin" && "Station Check-in"}
             </h2>
@@ -366,15 +366,15 @@ export default function AdminDashboard() {
       {activeTab === "manage" && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
-          {/* Create / Edit Trek Section */}
+          {/* Create / Edit Event Section */}
           <div className="lg:col-span-7 bg-white/5 backdrop-blur-xl border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden h-fit">
-            <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${editingTrekId ? "from-yellow-400 to-orange-500" : "from-rose-600 to-red-700"}`}></div>
+            <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${editingEventId ? "from-yellow-400 to-orange-500" : "from-rose-600 to-red-700"}`}></div>
             
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-white">
-                {editingTrekId ? "Edit Trek" : "Create New Trek"}
+                {editingEventId ? "Edit Event" : "Create New Event"}
               </h2>
-              {editingTrekId && (
+              {editingEventId && (
                 <button
                   onClick={resetForm}
                   className="text-sm bg-white/10 hover:bg-white/20 text-white px-3 py-1 rounded-lg transition-colors"
@@ -384,15 +384,15 @@ export default function AdminDashboard() {
               )}
             </div>
             
-            <form onSubmit={handleSubmitTrek} className="space-y-6">
+            <form onSubmit={handleSubmitEvent} className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 sm:col-span-1">
-                  <label className="block text-sm font-semibold text-gray-300 mb-2">Trek Name</label>
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">Event Name</label>
                   <input
                     type="text"
                     required
-                    value={newTrekName}
-                    onChange={(e) => setNewTrekName(e.target.value)}
+                    value={newEventName}
+                    onChange={(e) => setNewEventName(e.target.value)}
                     className="w-full bg-black/20 border border-white/10 rounded-2xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 placeholder-gray-500 transition-all"
                     placeholder="Everest Base Camp"
                   />
@@ -402,8 +402,8 @@ export default function AdminDashboard() {
                   <input
                     type="date"
                     required
-                    value={newTrekDate}
-                    onChange={(e) => setNewTrekDate(e.target.value)}
+                    value={newEventDate}
+                    onChange={(e) => setNewEventDate(e.target.value)}
                     className="w-full bg-black/20 border border-white/10 rounded-2xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
                   />
                 </div>
@@ -498,41 +498,41 @@ export default function AdminDashboard() {
                 type="submit"
                 disabled={isSaving}
                 className={`w-full mt-8 text-white font-bold py-4 px-4 rounded-2xl shadow-lg transition-all transform active:scale-[0.98] disabled:opacity-70 flex justify-center items-center gap-2 ${
-                  editingTrekId ? "bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700" : "bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-700 hover:to-red-800"
+                  editingEventId ? "bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700" : "bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-700 hover:to-red-800"
                 }`}
               >
-                {isSaving ? "Processing..." : (editingTrekId ? "Update Trek" : "Publish Trek")}
+                {isSaving ? "Processing..." : (editingEventId ? "Update Event" : "Publish Event")}
               </button>
             </form>
           </div>
 
-          {/* Existing Treks List */}
+          {/* Existing Events List */}
           <div className="lg:col-span-5 space-y-6">
-            <h2 className="text-2xl font-bold text-white mb-2">Active Treks</h2>
+            <h2 className="text-2xl font-bold text-white mb-2">Active Events</h2>
             <div className="space-y-4 pr-2">
-              {treks.length === 0 ? (
+              {events.length === 0 ? (
                 <div className="bg-white/5 border border-white/10 rounded-3xl p-8 text-center text-gray-400">
-                  No treks created yet.
+                  No events created yet.
                 </div>
               ) : (
-                treks.map(trek => (
-                  <div key={trek._id} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-6 hover:bg-white/10 transition-colors group">
+                events.map(event => (
+                  <div key={event._id} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-6 hover:bg-white/10 transition-colors group">
                     <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
                       <div>
-                        <h3 className="text-xl font-bold text-white">{trek.name}</h3>
-                        <p className="text-orange-300 text-sm font-medium">{formatTrekDate(trek.date)}</p>
+                        <h3 className="text-xl font-bold text-white">{event.name}</h3>
+                        <p className="text-orange-300 text-sm font-medium">{formatEventDate(event.date)}</p>
                       </div>
                       
                       <div className="flex items-center gap-2 w-full sm:w-auto">
                         <button
-                          onClick={() => handleEditInit(trek)}
+                          onClick={() => handleEditInit(event)}
                           className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20 border border-yellow-500/30 rounded-xl text-xs font-semibold transition-colors"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                           Edit
                         </button>
                         <button
-                          onClick={() => handleDelete(trek._id, trek.name)}
+                          onClick={() => handleDelete(event._id, event.name)}
                           className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 bg-red-500/10 text-red-300 hover:bg-red-500/20 border border-red-500/30 rounded-xl text-xs font-semibold transition-colors"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
@@ -543,16 +543,16 @@ export default function AdminDashboard() {
                     
                     <div className="mb-4">
                       <button 
-                        onClick={() => toggleTrek(trek._id)}
+                        onClick={() => toggleEvent(event._id)}
                         className="text-sm font-semibold text-gray-400 hover:text-white transition-colors flex items-center gap-1 mb-2 bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg border border-white/10"
                       >
-                        {expandedTreks[trek._id] ? "Hide Stations" : `Show Stations (${trek.stations?.length || 0})`}
-                        <svg className={`w-4 h-4 transform transition-transform ${expandedTreks[trek._id] ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                        {expandedEvents[event._id] ? "Hide Stations" : `Show Stations (${event.stations?.length || 0})`}
+                        <svg className={`w-4 h-4 transform transition-transform ${expandedEvents[event._id] ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                       </button>
                       
-                      {expandedTreks[trek._id] && (
+                      {expandedEvents[event._id] && (
                         <div className="flex flex-wrap gap-2 mt-3 animate-fade-in-up">
-                          {trek.stations?.map((s: any, idx: number) => (
+                          {event.stations?.map((s: any, idx: number) => (
                             <span key={idx} className="bg-black/30 px-3 py-1.5 rounded-lg text-xs text-gray-300 border border-white/5 flex items-center gap-2">
                               <span className="text-white font-semibold">{s.name}</span>
                               <span className="text-amber-300">{s.time}</span>
@@ -563,14 +563,14 @@ export default function AdminDashboard() {
                     </div>
 
                     <button
-                      onClick={() => copyLink(trek.shareId || trek._id)}
+                      onClick={() => copyLink(event.shareId || event._id)}
                       className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                        copiedLink === (trek.shareId || trek._id)
+                        copiedLink === (event.shareId || event._id)
                           ? "bg-green-500/20 text-green-300 border border-green-500/50" 
                           : "bg-white/10 text-white hover:bg-white/20 border border-white/10"
                       }`}
                     >
-                      {copiedLink === (trek.shareId || trek._id) ? (
+                      {copiedLink === (event.shareId || event._id) ? (
                         <>
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
                           Copied to Clipboard!
@@ -597,15 +597,15 @@ export default function AdminDashboard() {
           <div className="mb-6 flex flex-col md:flex-row gap-4 justify-between items-center bg-black/20 p-4 rounded-2xl border border-white/5">
             <h2 className="text-xl font-bold text-white">Passenger Manifest</h2>
             <div className="flex items-center gap-3 w-full md:w-auto">
-              <span className="text-sm text-gray-400 font-medium">Filter by Trek:</span>
+              <span className="text-sm text-gray-400 font-medium">Filter by Event:</span>
               <select
-                value={selectedTrekId}
-                onChange={(e) => setSelectedTrekId(e.target.value)}
+                value={selectedEventId}
+                onChange={(e) => setSelectedEventId(e.target.value)}
                 className="bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-full md:w-64 font-medium appearance-none"
               >
-                <option value="" className="text-black">Select a Trek</option>
-                {treks.map(t => (
-                  <option key={t._id} value={t._id} className="text-black">{t.name} ({formatTrekDate(t.date)})</option>
+                <option value="" className="text-black">Select a Event</option>
+                {events.map(t => (
+                  <option key={t._id} value={t._id} className="text-black">{t.name} ({formatEventDate(t.date)})</option>
                 ))}
               </select>
             </div>
@@ -632,7 +632,7 @@ export default function AdminDashboard() {
           <div className="block md:hidden space-y-4">
             {sortedSelections.length === 0 ? (
               <div className="py-12 text-center text-gray-400 font-medium bg-black/20 rounded-2xl border border-white/10">
-                No passengers have boarded this trek yet.
+                No passengers have boarded this event yet.
               </div>
             ) : (
               sortedSelections.map((sel) => (
@@ -672,7 +672,7 @@ export default function AdminDashboard() {
                 {sortedSelections.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="py-12 text-center text-gray-400 font-medium">
-                      No passengers have boarded this trek yet.
+                      No passengers have boarded this event yet.
                     </td>
                   </tr>
                 ) : (
@@ -704,23 +704,23 @@ export default function AdminDashboard() {
           <div className="mb-8 flex flex-col md:flex-row gap-4 justify-between items-center bg-black/20 p-4 rounded-2xl border border-white/5">
             <h2 className="text-xl font-bold text-white">Station Check-in</h2>
             <div className="flex items-center gap-3 w-full md:w-auto">
-              <span className="text-sm text-gray-400 font-medium">Select Trek:</span>
+              <span className="text-sm text-gray-400 font-medium">Select Event:</span>
               <select
-                value={selectedTrekId}
-                onChange={(e) => setSelectedTrekId(e.target.value)}
+                value={selectedEventId}
+                onChange={(e) => setSelectedEventId(e.target.value)}
                 className="bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-full md:w-64 font-medium appearance-none"
               >
-                <option value="" className="text-black">Select a Trek</option>
-                {treks.map(t => (
-                  <option key={t._id} value={t._id} className="text-black">{t.name} ({formatTrekDate(t.date)})</option>
+                <option value="" className="text-black">Select a Event</option>
+                {events.map(t => (
+                  <option key={t._id} value={t._id} className="text-black">{t.name} ({formatEventDate(t.date)})</option>
                 ))}
               </select>
             </div>
           </div>
 
-          {selectedTrekId && (
+          {selectedEventId && (
             <div className="mb-8 bg-black/20 p-6 rounded-2xl border border-white/5">
-              <h3 className="text-lg font-bold text-white mb-4">Overall Trek Status</h3>
+              <h3 className="text-lg font-bold text-white mb-4">Overall Event Status</h3>
               <div className="flex flex-col md:flex-row gap-6 items-center">
                 <div className="flex-1 w-full flex gap-4 text-center">
                   <div className="flex-1 bg-white/5 p-4 rounded-xl border border-white/10">
@@ -761,7 +761,7 @@ export default function AdminDashboard() {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {treks.find(t => t._id === selectedTrekId)?.stations.map((station: any, idx: number) => {
+            {events.find(t => t._id === selectedEventId)?.stations.map((station: any, idx: number) => {
               const stationSelections = selections.filter(s => s.station === station.name);
               const total = stationSelections.length;
               const arrived = stationSelections.filter(s => s.arrived).length;

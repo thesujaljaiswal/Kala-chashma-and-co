@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import TicketCard, { TicketData } from "@/components/TicketCard";
-import { checkTicketByPhone, getTreks } from "./actions";
+import { checkTicketByPhone, getEvents } from "./actions";
 import { motion } from "framer-motion";
 
 export default function Page() {
@@ -12,24 +12,24 @@ export default function Page() {
   const router = useRouter();
   
   const [lookupPhone, setLookupPhone] = useState("");
-  const [lookupTrekId, setLookupTrekId] = useState("");
-  const [treks, setTreks] = useState<any[]>([]);
+  const [lookupEventId, setLookupEventId] = useState("");
+  const [events, setEvents] = useState<any[]>([]);
   const [ticketData, setTicketData] = useState<TicketData | null>(null);
   const [lookupError, setLookupError] = useState("");
   const [isLookingUp, setIsLookingUp] = useState(false);
 
   useEffect(() => {
-    getTreks().then(data => setTreks(data));
+    getEvents().then(data => setEvents(data));
   }, []);
 
   const handleLookup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!lookupPhone || !lookupTrekId) return;
+    if (!lookupPhone || !lookupEventId) return;
     setIsLookingUp(true);
     setLookupError("");
     setTicketData(null);
     
-    const res = await checkTicketByPhone(lookupPhone, lookupTrekId);
+    const res = await checkTicketByPhone(lookupPhone, lookupEventId);
     setIsLookingUp(false);
     
     if (res.success && res.ticket) {
@@ -39,7 +39,7 @@ export default function Page() {
     }
   };
 
-  const formatTrekDate = (dateStr: string) => {
+  const formatEventDate = (dateStr: string) => {
     if (!dateStr) return "";
     const parts = dateStr.split("-");
     if (parts.length !== 3) return dateStr;
@@ -158,18 +158,18 @@ export default function Page() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Select Trek</label>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Select Event</label>
                       <div className="relative">
                         <select
                           required
-                          value={lookupTrekId}
-                          onChange={(e) => setLookupTrekId(e.target.value)}
-                          disabled={isLookingUp || treks.length === 0}
+                          value={lookupEventId}
+                          onChange={(e) => setLookupEventId(e.target.value)}
+                          disabled={isLookingUp || events.length === 0}
                           className="w-full bg-white/80 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 appearance-none focus:outline-none focus:border-[#1E4E8C] focus:ring-2 focus:ring-[#1E4E8C]/20 transition-all font-medium text-lg cursor-pointer shadow-sm"
                         >
                           <option value="" disabled>Choose your adventure...</option>
-                          {treks.map(t => (
-                            <option key={t._id} value={t._id}>{t.name} ({formatTrekDate(t.date)})</option>
+                          {events.map(t => (
+                            <option key={t._id} value={t._id}>{t.name} ({formatEventDate(t.date)})</option>
                           ))}
                         </select>
                         <div className="absolute inset-y-0 right-0 flex items-center pr-5 pointer-events-none text-gray-400">
@@ -179,7 +179,7 @@ export default function Page() {
                     </div>
                     <button
                       type="submit"
-                      disabled={!lookupPhone || !lookupTrekId || isLookingUp}
+                      disabled={!lookupPhone || !lookupEventId || isLookingUp}
                       className="w-full bg-gradient-to-r from-[#1E4E8C] to-[#E86A28] hover:opacity-90 disabled:opacity-50 text-white font-black py-4 px-6 rounded-2xl shadow-[0_8px_20px_rgba(232,106,40,0.3)] transition-all duration-300 hover:scale-[1.02] active:scale-95 flex justify-center items-center text-lg mt-4"
                     >
                       {isLookingUp ? (
@@ -296,7 +296,7 @@ export default function Page() {
             {[
               { name: "Harsh Goswami", image: "/harsh.png", role: "Co-Founder" },
               { name: "Musab Ansari", image: "/musab.png", role: "Co-Founder" },
-              { name: "Riddhiman Shetty", role: "Co-Founder" }
+              { name: "Riddhiman Shetty", image: "/Riddhiman.png", role: "Co-Founder" }
             ].map((founder, i) => (
               <div key={i} className="bg-white/80 relative overflow-hidden border border-gray-100 shadow-md rounded-[2.5rem] p-8 backdrop-blur-xl text-center transition-all duration-500 group hover:-translate-y-3 hover:shadow-[0_20px_40px_rgba(30,78,140,0.1)]">
                 

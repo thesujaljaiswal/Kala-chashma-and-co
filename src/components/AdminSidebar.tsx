@@ -26,14 +26,14 @@ export default function AdminSidebar({ activeTab, title }: { activeTab: "manage"
           
           <div className="flex flex-col gap-3">
             <Link
-              href="/manage-treks"
+              href="/manage-events"
               onClick={() => setIsSidebarOpen(false)}
               className={`w-full text-left px-4 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center gap-3 ${
                 activeTab === "manage" ? "bg-gradient-to-r from-rose-600 to-red-700 text-white shadow-lg" : "text-gray-400 hover:text-white hover:bg-white/5"
               }`}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
-              Manage Treks
+              Manage Events
             </Link>
             <Link
               href="/onboarding"

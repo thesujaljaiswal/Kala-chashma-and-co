@@ -5,7 +5,7 @@ export interface IStation {
   time: string;
 }
 
-export interface ITrek extends Document {
+export interface IEvent extends Document {
   name: string;
   date: string;
   shareId: string;
@@ -18,7 +18,7 @@ const StationSchema = new Schema<IStation>({
   time: { type: String, required: true },
 });
 
-const TrekSchema = new Schema<ITrek>({
+const EventSchema = new Schema<IEvent>({
   name: { type: String, required: true },
   date: { type: String, required: true },
   shareId: { type: String, required: true, unique: true },
@@ -27,8 +27,8 @@ const TrekSchema = new Schema<ITrek>({
 });
 
 // Force schema compilation in Next.js development (HMR)
-if (mongoose.models.Trek) {
-  delete mongoose.models.Trek;
+if (mongoose.models.Event) {
+  delete mongoose.models.Event;
 }
 
-export default mongoose.model<ITrek>("Trek", TrekSchema);
+export default mongoose.models.Event || mongoose.model<IEvent>("Event", EventSchema);

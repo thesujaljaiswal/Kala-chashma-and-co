@@ -7,8 +7,8 @@ export interface TicketData {
   phone: string;
   station: string;
   ticketToken?: string;
-  trekName: string;
-  trekDate: string;
+  eventName: string;
+  eventDate: string;
   stations: any[];
 }
 
@@ -23,7 +23,7 @@ export default function TicketCard({ ticket }: { ticket: TicketData }) {
     return `${h % 12 || 12}:${minutes} ${ampm}`;
   };
 
-  const formatTrekDate = (dateStr: string) => {
+  const formatEventDate = (dateStr: string) => {
     if (!dateStr) return "";
     const parts = dateStr.split("-");
     if (parts.length !== 3) return dateStr;
@@ -91,8 +91,8 @@ export default function TicketCard({ ticket }: { ticket: TicketData }) {
 
           <div className="relative z-10 flex justify-between items-start">
             <div>
-              <h2 className="text-2xl font-black tracking-tight drop-shadow-md">{ticket.trekName}</h2>
-              <p className="text-gray-100/80 font-medium text-sm mt-1 drop-shadow-sm">{formatTrekDate(ticket.trekDate)}</p>
+              <h2 className="text-2xl font-black tracking-tight drop-shadow-md">{ticket.eventName}</h2>
+              <p className="text-gray-100/80 font-medium text-sm mt-1 drop-shadow-sm">{formatEventDate(ticket.eventDate)}</p>
             </div>
             <div className="bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-[0_4px_15px_rgba(232,106,40,0.4)] border border-orange-400/50 backdrop-blur-sm">
               CONFIRMED
@@ -165,7 +165,7 @@ export default function TicketCard({ ticket }: { ticket: TicketData }) {
               </ul>
               <div className="mt-4 bg-gradient-to-r from-orange-50 to-amber-50 p-3 rounded-xl border border-orange-100/50 shadow-inner">
                 <p className="text-orange-800 text-xs font-bold leading-relaxed text-center">
-                  Let’s keep the energy high, stay together, and make this trek a memorable one! 🥾✨
+                  Let’s keep the energy high, stay together, and make this event a memorable one! 🥾✨
                 </p>
               </div>
             </div>

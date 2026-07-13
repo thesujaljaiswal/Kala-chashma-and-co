@@ -2,7 +2,7 @@
 
 import dbConnect from "@/lib/mongodb";
 import Selection from "@/models/Selection";
-import Trek from "@/models/Trek";
+import EventModel from "@/models/EventModel";
 import crypto from "crypto";
 
 // Helper to generate a random 24 char hex string for the share URL
@@ -10,68 +10,68 @@ function generateShareId() {
   return crypto.randomBytes(12).toString('hex');
 }
 
-// --- TREKS ---
-export async function getTreks() {
+// --- EVENTS ---
+export async function getEvents() {
   await dbConnect();
   // Return plain objects to avoid serialization issues
-  const treks = await Trek.find({}).sort({ createdAt: -1 }).lean();
-  return JSON.parse(JSON.stringify(treks));
+  const events = await EventModel.find({}).sort({ createdAt: -1 }).lean();
+  return JSON.parse(JSON.stringify(events));
 }
 
-export async function createTrek(name: string, date: string, stations: { name: string; time: string }[]) {
+export async function createEvent(name: string, date: string, stations: { name: string; time: string }[]) {
   try {
     await dbConnect();
     const shareId = generateShareId();
-    const newTrek = await Trek.create({ name, date, stations, shareId });
-    return { success: true, id: newTrek._id.toString(), shareId };
+    const newEvent = await EventModel.create({ name, date, stations, shareId });
+    return { success: true, id: newEvent._id.toString(), shareId };
   } catch (error) {
-    console.error("Failed to create trek:", error);
-    return { success: false, error: "Failed to create trek" };
+    console.error("Failed to create event:", error);
+    return { success: false, error: "Failed to create event" };
   }
 }
 
-export async function updateTrek(id: string, name: string, date: string, stations: { name: string; time: string }[]) {
+export async function updateEvent(id: string, name: string, date: string, stations: { name: string; time: string }[]) {
   try {
     await dbConnect();
-    await Trek.findByIdAndUpdate(id, { name, date, stations });
+    await EventModel.findByIdAndUpdate(id, { name, date, stations });
     return { success: true };
   } catch (error) {
-    console.error("Failed to update trek:", error);
-    return { success: false, error: "Failed to update trek" };
+    console.error("Failed to update event:", error);
+    return { success: false, error: "Failed to update event" };
   }
 }
 
-export async function deleteTrek(id: string) {
+export async function deleteEvent(id: string) {
   try {
     await dbConnect();
-    await Trek.findByIdAndDelete(id);
-    // Optionally cascade delete selections for this trek
-    await Selection.deleteMany({ trekId: id });
+    await EventModel.findByIdAndDelete(id);
+    // Optionally cascade delete selections for this event
+    await Selection.deleteMany({ eventId: id });
     return { success: true };
   } catch (error) {
-    console.error("Failed to delete trek:", error);
-    return { success: false, error: "Failed to delete trek" };
+    console.error("Failed to delete event:", error);
+    return { success: false, error: "Failed to delete event" };
   }
 }
 
 // --- SELECTIONS ---
-export async function saveStationSelection(passengerName: string, phone: string, station: string, trekId: string) {
+export async function saveStationSelection(passengerName: string, phone: string, station: string, eventId: string) {
   try {
     await dbConnect();
     
     const normalizedPhone = phone.replace(/\D/g, '');
 
     // Check for duplicates!
-    const existing = await Selection.findOne({ passengerName, normalizedPhone, station, trekId });
+    const existing = await Selection.findOne({ passengerName, normalizedPhone, station, eventId });
     if (existing) {
-      return { success: false, error: "You have already registered for this station on this trek with these details!", ticketToken: existing.ticketToken };
+      return { success: false, error: "You have already registered for this station on this event with these details!", ticketToken: existing.ticketToken };
     }
 
     const tokenChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     const randStr = Array.from({ length: 6 }, () => tokenChars[crypto.randomInt(0, tokenChars.length)]).join('');
-    const ticketToken = `TRK-${randStr}`;
+    const ticketToken = `EVT-${randStr}`;
 
-    const newSelection = await Selection.create({ passengerName, phone, normalizedPhone, station, trekId, ticketToken });
+    const newSelection = await Selection.create({ passengerName, phone, normalizedPhone, station, eventId, ticketToken });
     return { success: true, id: newSelection._id.toString(), ticketToken };
   } catch (error) {
     console.error("Failed to save selection:", error);
@@ -79,10 +79,10 @@ export async function saveStationSelection(passengerName: string, phone: string,
   }
 }
 
-export async function getSelectionsByTrek(trekId: string) {
+export async function getSelectionsByEvent(eventId: string) {
   try {
     await dbConnect();
-    const selections = await Selection.find({ trekId }).sort({ createdAt: -1 }).lean();
+    const selections = await Selection.find({ eventId }).sort({ createdAt: -1 }).lean();
     return JSON.parse(JSON.stringify(selections));
   } catch (error) {
     console.error("Failed to fetch selections:", error);
@@ -101,7 +101,7 @@ export async function togglePassengerArrival(selectionId: string, arrived: boole
   }
 }
 
-export async function checkTicketByPhone(phone: string, trekId: string) {
+export async function checkTicketByPhone(phone: string, eventId: string) {
   try {
     await dbConnect();
     
@@ -114,21 +114,21 @@ export async function checkTicketByPhone(phone: string, trekId: string) {
     const regexPattern = cleanPhone.split('').join('\\D*') + '\\D*$';
     const phoneRegex = new RegExp(regexPattern);
 
-    // Find the selection for this phone number and trek.
+    // Find the selection for this phone number and event.
     // We check both the new highly-indexed normalizedPhone field, and fallback to regex for older tickets.
     const selection = await Selection.findOne({ 
       $or: [
         { normalizedPhone: cleanPhone },
         { phone: { $regex: phoneRegex } }
       ],
-      trekId 
+      eventId 
     }).sort({ createdAt: -1 }).lean();
     
     if (!selection) return { success: false, error: "No booking found for this phone number." };
     
-    // Get the Trek to show the details
-    const trek = await Trek.findById(selection.trekId).lean();
-    if (!trek) return { success: false, error: "Booking found, but trek details are missing." };
+    // Get the Event to show the details
+    const event = await EventModel.findById(selection.eventId).lean();
+    if (!event) return { success: false, error: "Booking found, but event details are missing." };
 
     return { 
       success: true, 
@@ -137,9 +137,9 @@ export async function checkTicketByPhone(phone: string, trekId: string) {
         phone: selection.phone,
         station: selection.station,
         ticketToken: selection.ticketToken,
-        trekName: trek.name,
-        trekDate: trek.date,
-        stations: trek.stations
+        eventName: event.name,
+        eventDate: event.date,
+        stations: event.stations
       }))
     };
   } catch (error) {

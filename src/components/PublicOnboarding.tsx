@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { saveStationSelection, getTreks } from "@/app/actions";
+import { saveStationSelection, getEvents } from "@/app/actions";
 import TicketCard, { TicketData } from "./TicketCard";
 import confetti from "canvas-confetti";
 import { motion } from "framer-motion";
 
-export default function PublicOnboarding({ urlTrekShareId }: { urlTrekShareId?: string }) {
-  const [treks, setTreks] = useState<any[]>([]);
-  const [selectedTrekId, setSelectedTrekId] = useState<string>("");
+export default function PublicOnboarding({ urlEventShareId }: { urlEventShareId?: string }) {
+  const [events, setEvents] = useState<any[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [passengerName, setPassengerName] = useState<string>("");
   const [phone, setPhone] = useState<string>("");
   const [boarding, setBoarding] = useState<string>("");
@@ -21,18 +21,18 @@ export default function PublicOnboarding({ urlTrekShareId }: { urlTrekShareId?: 
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchTreks();
+    fetchEvents();
   }, []);
 
-  const fetchTreks = async () => {
-    const data = await getTreks();
-    setTreks(data);
+  const fetchEvents = async () => {
+    const data = await getEvents();
+    setEvents(data);
     
     // Auto-select if a shareId is passed
-    if (urlTrekShareId) {
-      const trek = data.find((t: any) => t.shareId === urlTrekShareId || t._id === urlTrekShareId);
-      if (trek) {
-        setSelectedTrekId(trek._id);
+    if (urlEventShareId) {
+      const event = data.find((t: any) => t.shareId === urlEventShareId || t._id === urlEventShareId);
+      if (event) {
+        setSelectedEventId(event._id);
       } else {
         setErrorMsg("Invalid or expired invite link. Please contact the admin.");
       }
@@ -40,30 +40,30 @@ export default function PublicOnboarding({ urlTrekShareId }: { urlTrekShareId?: 
     setIsLoading(false);
   };
 
-  const selectedTrek = treks.find(t => t._id === selectedTrekId);
-  const availableStations = selectedTrek ? selectedTrek.stations : [];
+  const selectedEvent = events.find(t => t._id === selectedEventId);
+  const availableStations = selectedEvent ? selectedEvent.stations : [];
   const selectedStationObj = availableStations.find((s: any) => s.name === boarding);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!boarding || !passengerName || !phone || !selectedTrekId) return;
+    if (!boarding || !passengerName || !phone || !selectedEventId) return;
     
     setIsSaving(true);
     setSaved(false);
     setErrorMsg("");
     
-    const result = await saveStationSelection(passengerName, phone, boarding, selectedTrekId);
+    const result = await saveStationSelection(passengerName, phone, boarding, selectedEventId);
     
     setIsSaving(false);
-    if (result.success && selectedTrek && selectedStationObj) {
+    if (result.success && selectedEvent && selectedStationObj) {
       setTicketData({
         passengerName,
         phone,
         station: boarding,
         ticketToken: result.ticketToken,
-        trekName: selectedTrek.name,
-        trekDate: selectedTrek.date,
-        stations: selectedTrek.stations
+        eventName: selectedEvent.name,
+        eventDate: selectedEvent.date,
+        stations: selectedEvent.stations
       });
       setSaved(true);
 
@@ -88,7 +88,7 @@ export default function PublicOnboarding({ urlTrekShareId }: { urlTrekShareId?: 
     return `${h % 12 || 12}:${minutes} ${ampm}`;
   };
 
-  const isTrekLocked = Boolean(urlTrekShareId); 
+  const isEventLocked = Boolean(urlEventShareId); 
 
   if (isLoading) {
     return (
@@ -98,12 +98,12 @@ export default function PublicOnboarding({ urlTrekShareId }: { urlTrekShareId?: 
     );
   }
 
-  if (urlTrekShareId && !selectedTrek) {
+  if (urlEventShareId && !selectedEvent) {
     return (
       <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-4 bg-[#FAF9F6]">
         <main className="max-w-md w-full bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl p-8 border border-red-200 text-center">
            <h2 className="text-2xl font-bold text-gray-900 mb-4">Invalid Invite Link</h2>
-           <p className="text-gray-600">We couldn't find the trek associated with this link. It may have been deleted or the link is broken.</p>
+           <p className="text-gray-600">We couldn't find the event associated with this link. It may have been deleted or the link is broken.</p>
         </main>
       </div>
     );
@@ -156,7 +156,7 @@ export default function PublicOnboarding({ urlTrekShareId }: { urlTrekShareId?: 
             Journey Planner
           </h1>
           <p className="text-gray-500 font-medium">
-            {isTrekLocked && selectedTrek ? `Complete onboarding for ${selectedTrek.name}` : "Select a trek and boarding station."}
+            {isEventLocked && selectedEvent ? `Complete onboarding for ${selectedEvent.name}` : "Select a event and boarding station."}
           </p>
         </div>
 
@@ -225,29 +225,29 @@ export default function PublicOnboarding({ urlTrekShareId }: { urlTrekShareId?: 
             />
           </div>
 
-          {!isTrekLocked && (
+          {!isEventLocked && (
             <div>
               <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">
-                Select Trek
+                Select Event
               </label>
               <div className="relative">
                 <select
                   required
-                  value={selectedTrekId}
+                  value={selectedEventId}
                   onChange={(e) => {
-                    setSelectedTrekId(e.target.value);
+                    setSelectedEventId(e.target.value);
                     setBoarding(""); 
                     setSaved(false);
                   }}
-                  disabled={isSaving || treks.length === 0}
+                  disabled={isSaving || events.length === 0}
                   className="w-full bg-white/90 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 appearance-none focus:outline-none focus:ring-2 focus:ring-[#E86A28]/20 focus:border-[#E86A28] transition-all cursor-pointer shadow-sm disabled:opacity-50 font-medium text-lg"
                 >
                   <option value="" disabled>
-                    {treks.length === 0 ? "No treks available" : "Choose a trek"}
+                    {events.length === 0 ? "No events available" : "Choose a event"}
                   </option>
-                  {treks.map((trek) => (
-                    <option key={trek._id} value={trek._id}>
-                      {trek.name} ({trek.date})
+                  {events.map((event) => (
+                    <option key={event._id} value={event._id}>
+                      {event.name} ({event.date})
                     </option>
                   ))}
                 </select>
@@ -260,7 +260,7 @@ export default function PublicOnboarding({ urlTrekShareId }: { urlTrekShareId?: 
             </div>
           )}
 
-          {selectedTrekId && availableStations.length > 0 && (
+          {selectedEventId && availableStations.length > 0 && (
             <motion.div 
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
@@ -315,7 +315,7 @@ export default function PublicOnboarding({ urlTrekShareId }: { urlTrekShareId?: 
           
           <button
             type="submit"
-            disabled={!boarding || !passengerName || !phone || !selectedTrekId || isSaving}
+            disabled={!boarding || !passengerName || !phone || !selectedEventId || isSaving}
             className="w-full mt-8 bg-gradient-to-r from-[#1E4E8C] to-[#E86A28] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-lg py-4 px-4 rounded-2xl shadow-[0_8px_20px_rgba(232,106,40,0.3)] transform transition-all duration-300 active:scale-[0.98] flex justify-center items-center"
           >
             {isSaving ? (

@@ -75,7 +75,7 @@ export default function Navbar() {
                   Hello, <span className="font-semibold text-white">{session.user.name}</span>
                 </span>
                 <Link
-                  href="/manage-treks"
+                  href="/manage-events"
                   className="text-xs sm:text-sm px-2.5 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-orange-500 to-rose-600 hover:from-orange-600 hover:to-rose-700 text-white font-medium rounded-lg transition-all shadow-lg z-10 whitespace-nowrap"
                 >
                   Dashboard
