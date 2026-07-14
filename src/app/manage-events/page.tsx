@@ -44,6 +44,21 @@ export default function ManageEventsPage() {
     setEvents(data);
   };
 
+  const isPastEvent = (dateStr: string) => {
+    if (!dateStr) return false;
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) return false;
+    const eventDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    
+    return eventDate < today;
+  };
+
+  const activeEventsList = events.filter(e => !isPastEvent(e.date));
+  const pastEventsList = events.filter(e => isPastEvent(e.date));
+
   if (status === "loading" || isInitialLoading) {
     return (
       <div className="flex flex-col items-center justify-center w-full min-h-[calc(100vh-64px)] bg-black/20 gap-4">
@@ -156,9 +171,11 @@ export default function ManageEventsPage() {
     setIsSaving(true);
     let result;
     if (editingEventId) {
-      result = await updateEvent(editingEventId, newEventName, newEventDate, validStations);
+      // Fetch existing event to preserve customFields
+      const existingEvent = events.find(ev => ev._id === editingEventId);
+      result = await updateEvent(editingEventId, newEventName, newEventDate, validStations, existingEvent?.customFields);
     } else {
-      result = await createEvent(newEventName, newEventDate, validStations);
+      result = await createEvent(newEventName, newEventDate, validStations, []);
     }
     setIsSaving(false);
 
@@ -336,12 +353,12 @@ export default function ManageEventsPage() {
             <div className="lg:col-span-5 space-y-6">
               <h2 className="text-2xl font-bold text-white mb-2">Active Events</h2>
               <div className="space-y-4 pr-2">
-                {events.length === 0 ? (
+                {activeEventsList.length === 0 ? (
                   <div className="bg-white/5 border border-white/10 rounded-3xl p-8 text-center text-gray-400">
-                    No events created yet.
+                    No active events found.
                   </div>
                 ) : (
-                  events.map(event => (
+                  activeEventsList.map(event => (
                     <div key={event._id} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-4 sm:p-6 hover:bg-white/10 transition-colors group">
                       <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
                         <div>
@@ -349,22 +366,22 @@ export default function ManageEventsPage() {
                           <p className="text-orange-300 text-sm font-medium">{formatEventDate(event.date)}</p>
                         </div>
                         
-                        <div className="flex items-center gap-2 w-full sm:w-auto">
-                          <button
-                            onClick={() => handleEditInit(event)}
-                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20 border border-yellow-500/30 rounded-xl text-xs font-semibold transition-colors"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDelete(event._id, event.name)}
-                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 bg-red-500/10 text-red-300 hover:bg-red-500/20 border border-red-500/30 rounded-xl text-xs font-semibold transition-colors"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            Delete
-                          </button>
-                        </div>
+                          <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <button
+                              onClick={() => handleEditInit(event)}
+                              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20 border border-yellow-500/30 rounded-xl text-xs font-semibold transition-colors"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDelete(event._id, event.name)}
+                              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 bg-red-500/10 text-red-300 hover:bg-red-500/20 border border-red-500/30 rounded-xl text-xs font-semibold transition-colors"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                              Delete
+                            </button>
+                          </div>
                       </div>
                       
                       <div className="mb-4">
@@ -412,6 +429,49 @@ export default function ManageEventsPage() {
                   ))
                 )}
               </div>
+
+              {pastEventsList.length > 0 && (
+                <>
+                  <h2 className="text-xl font-bold text-gray-400 mb-2 mt-8">Past Events</h2>
+                  <div className="space-y-4 pr-2 opacity-75">
+                    {pastEventsList.map(event => (
+                      <div key={event._id} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-4 sm:p-6 hover:bg-white/10 transition-colors group grayscale hover:grayscale-0">
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
+                          <div>
+                            <h3 className="text-xl font-bold text-white">{event.name} <span className="ml-2 text-xs bg-gray-700 text-white px-2 py-1 rounded-full">Completed</span></h3>
+                            <p className="text-orange-300 text-sm font-medium">{formatEventDate(event.date)}</p>
+                          </div>
+                          
+                          <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <span className="text-xs font-semibold text-gray-500 bg-gray-800/50 px-3 py-2 rounded-xl border border-gray-700">Archived (Read-Only)</span>
+                          </div>
+                        </div>
+                        
+                        <div className="mb-4">
+                          <button 
+                            onClick={() => toggleEvent(event._id)}
+                            className="text-sm font-semibold text-gray-400 hover:text-white transition-colors flex items-center gap-1 mb-2 bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg border border-white/10"
+                          >
+                            {expandedEvents[event._id] ? "Hide Stations" : `Show Stations (${event.stations?.length || 0})`}
+                            <svg className={`w-4 h-4 transform transition-transform ${expandedEvents[event._id] ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                          </button>
+                          
+                          {expandedEvents[event._id] && (
+                            <div className="flex flex-wrap gap-2 mt-3 animate-fade-in-up">
+                              {event.stations?.map((s: any, idx: number) => (
+                                <span key={idx} className="bg-black/30 px-3 py-1.5 rounded-lg text-xs text-gray-300 border border-white/5 flex items-center gap-2">
+                                  <span className="text-white font-semibold">{s.name}</span>
+                                  <span className="text-amber-300">{s.time}</span>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

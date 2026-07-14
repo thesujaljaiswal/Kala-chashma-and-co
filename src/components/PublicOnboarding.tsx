@@ -40,9 +40,21 @@ export default function PublicOnboarding({ urlEventShareId }: { urlEventShareId?
     setIsLoading(false);
   };
 
+  const isPastEvent = (dateStr: string) => {
+    if (!dateStr) return false;
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) return false;
+    const eventDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    return eventDate < today;
+  };
+
   const selectedEvent = events.find(t => t._id === selectedEventId);
   const availableStations = selectedEvent ? selectedEvent.stations : [];
   const selectedStationObj = availableStations.find((s: any) => s.name === boarding);
+  
+  const isPast = selectedEvent ? isPastEvent(selectedEvent.date) : false;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,16 +110,7 @@ export default function PublicOnboarding({ urlEventShareId }: { urlEventShareId?
     );
   }
 
-  if (urlEventShareId && !selectedEvent) {
-    return (
-      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-4 bg-[#FAF9F6]">
-        <main className="max-w-md w-full bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl p-8 border border-red-200 text-center">
-           <h2 className="text-2xl font-bold text-gray-900 mb-4">Invalid Invite Link</h2>
-           <p className="text-gray-600">We couldn't find the event associated with this link. It may have been deleted or the link is broken.</p>
-        </main>
-      </div>
-    );
-  }
+  // We moved the early returns for invalid links and past events into the main layout
 
   return (
     <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-4 bg-[#FAF9F6] relative overflow-hidden">
@@ -151,7 +154,23 @@ export default function PublicOnboarding({ urlEventShareId }: { urlEventShareId?
       >
         <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#1E4E8C] via-[#C69C6D] to-[#E86A28]"></div>
         
-        <div className="text-center mb-8">
+        {urlEventShareId && !selectedEvent ? (
+          <div className="text-center py-6">
+            <h2 className="text-3xl font-black mb-3 text-gray-900 tracking-tight">Invalid Invite Link</h2>
+            <p className="text-gray-600 font-medium leading-relaxed">
+              We couldn't find the event associated with this link. It may have been deleted or the link is broken.
+            </p>
+          </div>
+        ) : urlEventShareId && isPast ? (
+          <div className="text-center py-6">
+            <h2 className="text-3xl font-black mb-3 text-gray-900 tracking-tight">Event Concluded</h2>
+            <p className="text-gray-600 font-medium leading-relaxed">
+              This event has already taken place. Registration is now closed.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="text-center mb-8">
           <h1 className="text-4xl font-black mb-3 text-gray-900 tracking-tight">
             Journey Planner
           </h1>
@@ -243,9 +262,9 @@ export default function PublicOnboarding({ urlEventShareId }: { urlEventShareId?
                   className="w-full bg-white/90 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 appearance-none focus:outline-none focus:ring-2 focus:ring-[#E86A28]/20 focus:border-[#E86A28] transition-all cursor-pointer shadow-sm disabled:opacity-50 font-medium text-lg"
                 >
                   <option value="" disabled>
-                    {events.length === 0 ? "No events available" : "Choose a event"}
+                    {events.filter(e => !isPastEvent(e.date)).length === 0 ? "No events available" : "Choose a event"}
                   </option>
-                  {events.map((event) => (
+                  {events.filter(e => !isPastEvent(e.date)).map((event) => (
                     <option key={event._id} value={event._id}>
                       {event.name} ({event.date})
                     </option>
@@ -332,6 +351,8 @@ export default function PublicOnboarding({ urlEventShareId }: { urlEventShareId?
           </button>
 
           </form>
+        )}
+        </>
         )}
       </motion.main>
     </div>

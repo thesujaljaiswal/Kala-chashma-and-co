@@ -3,6 +3,8 @@
 import dbConnect from "@/lib/mongodb";
 import Selection from "@/models/Selection";
 import EventModel from "@/models/EventModel";
+import { FormModel } from "@/models/FormModel";
+import { FormResponseModel } from "@/models/FormResponseModel";
 import crypto from "crypto";
 
 // Helper to generate a random 24 char hex string for the share URL
@@ -18,11 +20,11 @@ export async function getEvents() {
   return JSON.parse(JSON.stringify(events));
 }
 
-export async function createEvent(name: string, date: string, stations: { name: string; time: string }[]) {
+export async function createEvent(name: string, date: string, stations: { name: string; time: string }[], customFields: any[] = []) {
   try {
     await dbConnect();
     const shareId = generateShareId();
-    const newEvent = await EventModel.create({ name, date, stations, shareId });
+    const newEvent = await EventModel.create({ name, date, stations, shareId, customFields });
     return { success: true, id: newEvent._id.toString(), shareId };
   } catch (error) {
     console.error("Failed to create event:", error);
@@ -30,10 +32,10 @@ export async function createEvent(name: string, date: string, stations: { name: 
   }
 }
 
-export async function updateEvent(id: string, name: string, date: string, stations: { name: string; time: string }[]) {
+export async function updateEvent(id: string, name: string, date: string, stations: { name: string; time: string }[], customFields: any[] = []) {
   try {
     await dbConnect();
-    await EventModel.findByIdAndUpdate(id, { name, date, stations });
+    await EventModel.findByIdAndUpdate(id, { name, date, stations, customFields });
     return { success: true };
   } catch (error) {
     console.error("Failed to update event:", error);
@@ -51,6 +53,106 @@ export async function deleteEvent(id: string) {
   } catch (error) {
     console.error("Failed to delete event:", error);
     return { success: false, error: "Failed to delete event" };
+  }
+}
+
+export async function getEventById(id: string) {
+  await dbConnect();
+  const event = await EventModel.findById(id).lean();
+  return JSON.parse(JSON.stringify(event));
+}
+
+export async function updateEventFields(id: string, customFields: any[]) {
+  try {
+    await dbConnect();
+    await EventModel.findByIdAndUpdate(id, { customFields });
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to update event fields:", error);
+    return { success: false, error: "Failed to update event fields" };
+  }
+}
+
+// ----------------------------------------------------
+// FORMS
+// ----------------------------------------------------
+
+export async function getForms() {
+  try {
+    await dbConnect();
+    const forms = await FormModel.find({}).sort({ createdAt: -1 }).lean();
+    return JSON.parse(JSON.stringify(forms));
+  } catch (error) {
+    console.error("Failed to get forms:", error);
+    return [];
+  }
+}
+
+export async function getFormByShareId(shareId: string) {
+  try {
+    await dbConnect();
+    const form = await FormModel.findOne({ shareId }).lean();
+    return JSON.parse(JSON.stringify(form));
+  } catch (error) {
+    console.error("Failed to get form by shareId:", error);
+    return null;
+  }
+}
+
+export async function createForm(name: string, description: string, fields: any[]) {
+  try {
+    await dbConnect();
+    const shareId = Math.random().toString(36).substring(2, 10);
+    const form = await FormModel.create({ name, description, shareId, fields });
+    return { success: true, shareId: form.shareId };
+  } catch (error) {
+    console.error("Failed to create form:", error);
+    return { success: false, error: "Failed to create form" };
+  }
+}
+
+export async function updateForm(id: string, name: string, description: string, fields: any[]) {
+  try {
+    await dbConnect();
+    await FormModel.findByIdAndUpdate(id, { name, description, fields });
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to update form:", error);
+    return { success: false, error: "Failed to update form" };
+  }
+}
+
+export async function deleteForm(id: string) {
+  try {
+    await dbConnect();
+    await FormModel.findByIdAndDelete(id);
+    await FormResponseModel.deleteMany({ formId: id });
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to delete form:", error);
+    return { success: false, error: "Failed to delete form" };
+  }
+}
+
+export async function submitFormResponse(formId: string, responses: { label: string; value: string }[]) {
+  try {
+    await dbConnect();
+    await FormResponseModel.create({ formId, responses });
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to submit form response:", error);
+    return { success: false, error: "Failed to submit form response" };
+  }
+}
+
+export async function getFormResponses(formId: string) {
+  try {
+    await dbConnect();
+    const responses = await FormResponseModel.find({ formId }).sort({ createdAt: -1 }).lean();
+    return JSON.parse(JSON.stringify(responses));
+  } catch (error) {
+    console.error("Failed to get form responses:", error);
+    return [];
   }
 }
 
