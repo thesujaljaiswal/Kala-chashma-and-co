@@ -215,11 +215,11 @@ export async function processEmailTicket(formResponseId: string) {
           }
         });
 
-        await transporter.sendMail({
+        const mailOptions = {
           from: `"${form.name}" <${process.env.GMAIL_USER}>`,
           to: userEmail,
           subject: `Your Pass for ${form.name}`,
-          priority: 'high',
+          priority: 'high' as const,
           attachments: [{
             filename: 'qrcode.png',
             path: qrCodeDataUrl,
@@ -302,6 +302,17 @@ export async function processEmailTicket(formResponseId: string) {
   <p style="text-align: center; font-size: 11px; color: #888888; margin-top: 40px; margin-bottom: 0; text-transform: uppercase; letter-spacing: 1px;">Present this pass upon arrival.</p>
 </div>
           `
+        };
+
+        await new Promise((resolve, reject) => {
+          transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+              console.error("Vercel Nodemailer Error:", error);
+              reject(error);
+            } else {
+              resolve(info);
+            }
+          });
         });
       } catch (emailError) {
         console.error("Failed to send email ticket:", emailError);
