@@ -19,7 +19,10 @@ export default function Page() {
   const [isLookingUp, setIsLookingUp] = useState(false);
 
   useEffect(() => {
-    getEvents().then(data => setEvents(data));
+    getEvents().then(data => {
+      const todayStr = new Date().toISOString().split("T")[0];
+      setEvents(data.filter((e: any) => e.date >= todayStr));
+    });
   }, []);
 
   const handleLookup = async (e: React.FormEvent) => {

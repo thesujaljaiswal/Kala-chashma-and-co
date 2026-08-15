@@ -13,15 +13,13 @@ export default function ManageEventsPage() {
   const [events, setEvents] = useState<any[]>([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [expandedEvents, setExpandedEvents] = useState<Record<string, boolean>>({});
-  const [copiedLink, setCopiedLink] = useState<string | null>(null);
+
 
   // Form State
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [newEventName, setNewEventName] = useState("");
   const [newEventDate, setNewEventDate] = useState("");
-  const [stations, setStations] = useState([{ name: "", time: "" }]);
   const [isSaving, setIsSaving] = useState(false);
-  const [draggedStationIdx, setDraggedStationIdx] = useState<number | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -78,73 +76,18 @@ export default function ManageEventsPage() {
     setExpandedEvents(prev => ({...prev, [id]: !prev[id]}));
   };
 
-  const handleStationChange = (index: number, field: "name" | "time", value: string) => {
-    const updated = [...stations];
-    updated[index][field] = value;
-    setStations(updated);
-  };
 
-  const addStationField = () => {
-    setStations([...stations, { name: "", time: "" }]);
-  };
-
-  const removeStationField = (index: number) => {
-    const updated = stations.filter((_, i) => i !== index);
-    setStations(updated);
-  };
-
-  const moveStationUp = (index: number) => {
-    if (index === 0) return;
-    const updated = [...stations];
-    const temp = updated[index - 1];
-    updated[index - 1] = updated[index];
-    updated[index] = temp;
-    setStations(updated);
-  };
-
-  const moveStationDown = (index: number) => {
-    if (index === stations.length - 1) return;
-    const updated = [...stations];
-    const temp = updated[index + 1];
-    updated[index + 1] = updated[index];
-    updated[index] = temp;
-    setStations(updated);
-  };
-
-  const handleDragStart = (e: React.DragEvent, index: number) => {
-    setDraggedStationIdx(index);
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", index.toString());
-  };
-
-  const handleDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    if (draggedStationIdx === null || draggedStationIdx === index) return;
-    const updated = [...stations];
-    const temp = updated[draggedStationIdx];
-    updated[draggedStationIdx] = updated[index];
-    updated[index] = temp;
-    setStations(updated);
-    setDraggedStationIdx(index);
-  };
-
-  const handleDragEnd = () => {
-    setDraggedStationIdx(null);
-  };
 
   const resetForm = () => {
     setEditingEventId(null);
     setNewEventName("");
     setNewEventDate("");
-    setStations([{ name: "", time: "" }]);
   };
 
   const handleEditInit = (event: any) => {
     setEditingEventId(event._id);
     setNewEventName(event.name);
     setNewEventDate(event.date);
-    setStations(event.stations.length > 0 ? event.stations.map((s:any) => ({ name: s.name, time: s.time })) : [{ name: "", time: "" }]);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -162,20 +105,15 @@ export default function ManageEventsPage() {
 
   const handleSubmitEvent = async (e: React.FormEvent) => {
     e.preventDefault();
-    const validStations = stations.filter(s => s.name.trim() !== "" && s.time.trim() !== "");
-    if (validStations.length === 0) {
-      alert("Please add at least one valid boarding station.");
-      return;
-    }
     
     setIsSaving(true);
     let result;
     if (editingEventId) {
-      // Fetch existing event to preserve customFields
+      // Fetch existing event to preserve customFields and stations
       const existingEvent = events.find(ev => ev._id === editingEventId);
-      result = await updateEvent(editingEventId, newEventName, newEventDate, validStations, existingEvent?.customFields);
+      result = await updateEvent(editingEventId, newEventName, newEventDate, existingEvent?.stations || [], existingEvent?.customFields);
     } else {
-      result = await createEvent(newEventName, newEventDate, validStations, []);
+      result = await createEvent(newEventName, newEventDate, [], []);
     }
     setIsSaving(false);
 
@@ -187,12 +125,7 @@ export default function ManageEventsPage() {
     }
   };
 
-  const copyLink = (eventShareId: string) => {
-    const link = `${window.location.origin}/${eventShareId}`;
-    navigator.clipboard.writeText(link);
-    setCopiedLink(eventShareId);
-    setTimeout(() => setCopiedLink(null), 3000);
-  };
+
 
   const formatEventDate = (dateStr: string) => {
     if (!dateStr) return "";
@@ -252,90 +185,7 @@ export default function ManageEventsPage() {
                   </div>
                 </div>
                 
-                <div className="pt-6 border-t border-white/10">
-                  <label className="block text-sm font-semibold text-gray-300 mb-4 flex items-center justify-between">
-                    Boarding Flow (Stations in order)
-                    <button
-                      type="button"
-                      onClick={addStationField}
-                      className="text-xs bg-purple-500/20 text-purple-300 hover:bg-purple-500/40 hover:text-white px-3 py-1.5 rounded-full transition-all flex items-center gap-1"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                      Add Station
-                    </button>
-                  </label>
-                  
-                  <div className="space-y-3">
-                    {stations.map((station, index) => (
-                      <div 
-                        key={index} 
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, index)}
-                        onDragOver={(e) => handleDragOver(e, index)}
-                        onDragEnd={handleDragEnd}
-                        className={`flex gap-3 items-center bg-black/10 p-2 rounded-2xl border border-white/5 cursor-grab active:cursor-grabbing transition-transform ${draggedStationIdx === index ? 'opacity-40 scale-[0.98]' : ''}`}
-                      >
-                        <div className="text-gray-500 px-1 shrink-0 hidden md:block">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8h16M4 16h16"></path></svg>
-                        </div>
-                        <div className="w-8 h-8 rounded-full bg-white/10 text-white font-bold flex items-center justify-center text-xs shrink-0">
-                          {index + 1}
-                        </div>
-                        <div className="flex-1">
-                          <input
-                            type="text"
-                            required
-                            value={station.name}
-                            onChange={(e) => handleStationChange(index, "name", e.target.value)}
-                            className="w-full bg-transparent border-none px-2 py-2 text-white focus:outline-none placeholder-gray-500 text-sm"
-                            placeholder="Station Name"
-                          />
-                        </div>
-                        <div className="w-[90px] sm:w-[110px] shrink-0 border-l border-white/10 pl-2 sm:pl-3">
-                          <input
-                            type="time"
-                            required
-                            value={station.time}
-                            onChange={(e) => handleStationChange(index, "time", e.target.value)}
-                            className="w-full bg-transparent border-none text-white focus:outline-none text-sm"
-                          />
-                        </div>
-                        
-                        <div className="flex flex-col gap-1 border-l border-white/10 pl-2 md:hidden">
-                          <button
-                            type="button"
-                            onClick={() => moveStationUp(index)}
-                            disabled={index === 0}
-                            className="text-gray-500 hover:text-orange-400 disabled:opacity-30 disabled:hover:text-gray-500 transition-colors"
-                            title="Move Up"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 15l7-7 7 7"></path></svg>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => moveStationDown(index)}
-                            disabled={index === stations.length - 1}
-                            className="text-gray-500 hover:text-orange-400 disabled:opacity-30 disabled:hover:text-gray-500 transition-colors"
-                            title="Move Down"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
-                          </button>
-                        </div>
 
-                        {stations.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeStationField(index)}
-                            className="p-1 ml-1 text-gray-500 hover:text-red-400 transition-colors shrink-0 bg-white/5 hover:bg-red-500/10 rounded-lg"
-                            title="Delete Station"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
 
                 <button
                   type="submit"
@@ -384,47 +234,9 @@ export default function ManageEventsPage() {
                           </div>
                       </div>
                       
-                      <div className="mb-4">
-                        <button 
-                          onClick={() => toggleEvent(event._id)}
-                          className="text-sm font-semibold text-gray-400 hover:text-white transition-colors flex items-center gap-1 mb-2 bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg border border-white/10"
-                        >
-                          {expandedEvents[event._id] ? "Hide Stations" : `Show Stations (${event.stations?.length || 0})`}
-                          <svg className={`w-4 h-4 transform transition-transform ${expandedEvents[event._id] ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </button>
-                        
-                        {expandedEvents[event._id] && (
-                          <div className="flex flex-wrap gap-2 mt-3 animate-fade-in-up">
-                            {event.stations?.map((s: any, idx: number) => (
-                              <span key={idx} className="bg-black/30 px-3 py-1.5 rounded-lg text-xs text-gray-300 border border-white/5 flex items-center gap-2">
-                                <span className="text-white font-semibold">{s.name}</span>
-                                <span className="text-amber-300">{s.time}</span>
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
 
-                      <button
-                        onClick={() => copyLink(event.shareId || event._id)}
-                        className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                          copiedLink === (event.shareId || event._id)
-                            ? "bg-green-500/20 text-green-300 border border-green-500/50" 
-                            : "bg-white/10 text-white hover:bg-white/20 border border-white/10"
-                        }`}
-                      >
-                        {copiedLink === (event.shareId || event._id) ? (
-                          <>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
-                            Copied to Clipboard!
-                          </>
-                        ) : (
-                          <>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
-                            Copy Passenger Invite Link
-                          </>
-                        )}
-                      </button>
+
+
                     </div>
                   ))
                 )}
@@ -447,26 +259,7 @@ export default function ManageEventsPage() {
                           </div>
                         </div>
                         
-                        <div className="mb-4">
-                          <button 
-                            onClick={() => toggleEvent(event._id)}
-                            className="text-sm font-semibold text-gray-400 hover:text-white transition-colors flex items-center gap-1 mb-2 bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg border border-white/10"
-                          >
-                            {expandedEvents[event._id] ? "Hide Stations" : `Show Stations (${event.stations?.length || 0})`}
-                            <svg className={`w-4 h-4 transform transition-transform ${expandedEvents[event._id] ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                          </button>
-                          
-                          {expandedEvents[event._id] && (
-                            <div className="flex flex-wrap gap-2 mt-3 animate-fade-in-up">
-                              {event.stations?.map((s: any, idx: number) => (
-                                <span key={idx} className="bg-black/30 px-3 py-1.5 rounded-lg text-xs text-gray-300 border border-white/5 flex items-center gap-2">
-                                  <span className="text-white font-semibold">{s.name}</span>
-                                  <span className="text-amber-300">{s.time}</span>
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+
                       </div>
                     ))}
                   </div>

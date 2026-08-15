@@ -12,6 +12,19 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    // Dynamically load Razorpay checkout script
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+  const [errorField, setErrorField] = useState<string | null>(null);
   const [showUndertakingModal, setShowUndertakingModal] = useState(false);
   const [currentUndertakingField, setCurrentUndertakingField] = useState<string | null>(null);
 
@@ -28,29 +41,118 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
     e.preventDefault();
     if (!form) return;
 
-    // Validate required fields
+    setErrorField(null);
+    setErrorMsg("");
+
+    // Validate required fields and undertakings
     for (const field of form.fields) {
       if (field.required && !responses[field.label]?.trim()) {
         setErrorMsg(`Please answer: ${field.label}`);
+        setErrorField(field.label);
+        document.getElementById(`field-${field.label.replace(/\s+/g, '-')}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      
+      if (field.type === 'undertaking' && responses[field.label] !== 'Accepted') {
+        setErrorMsg(`You must accept the undertaking: ${field.label}`);
+        setErrorField(field.label);
+        document.getElementById(`field-${field.label.replace(/\s+/g, '-')}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
     }
 
     setIsSubmitting(true);
-    setErrorMsg("");
 
     const responsesArray = Object.keys(responses).map(label => ({
       label,
       value: responses[label]
     }));
 
-    const result = await submitFormResponse(form._id, responsesArray);
-    
-    setIsSubmitting(false);
-    if (result.success) {
-      setIsSuccess(true);
+    if (form.isPaymentEnabled && form.paymentAmount > 0) {
+      const result = await submitFormResponse(form._id, responsesArray, 'pending');
+      if (result.success) {
+        try {
+          const res = await fetch('/api/payment/initiate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              formResponseId: result.responseId,
+              amount: form.paymentAmount,
+              formName: form.name
+            })
+          });
+          const data = await res.json();
+          if (data.success && data.order_id) {
+            
+            const options = {
+              key: data.key_id, 
+              amount: data.amount,
+              currency: data.currency,
+              name: "Kala Chashma and Co.",
+              description: form.name,
+              order_id: data.order_id,
+              handler: async function (response: any) {
+                // Verify payment on our backend
+                try {
+                  const verifyRes = await fetch('/api/payment/callback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      razorpay_payment_id: response.razorpay_payment_id,
+                      razorpay_order_id: response.razorpay_order_id,
+                      razorpay_signature: response.razorpay_signature,
+                      formResponseId: result.responseId
+                    })
+                  });
+                  const verifyData = await verifyRes.json();
+                  if (verifyData.success) {
+                    setIsSuccess(true);
+                  } else {
+                    setErrorMsg("Payment verification failed. Please contact support.");
+                  }
+                } catch (e) {
+                  setErrorMsg("Error during payment verification.");
+                }
+              },
+              prefill: {
+                name: responses["Name"] || responses["Full Name"] || "",
+                email: responses["Email"] || "",
+                contact: responses["Phone Number"] || responses["Phone"] || ""
+              },
+              theme: {
+                color: "#1E4E8C"
+              }
+            };
+            
+            const rzp = new (window as any).Razorpay(options);
+            
+            rzp.on('payment.failed', function (response: any) {
+               setErrorMsg(response.error.description || "Payment failed.");
+            });
+            
+            rzp.open();
+            
+            setIsSubmitting(false); // Modal handles the rest
+          } else {
+            setErrorMsg("Payment initiation failed. Please try again.");
+            setIsSubmitting(false);
+          }
+        } catch (err) {
+          setErrorMsg("Payment setup error. Please contact support.");
+          setIsSubmitting(false);
+        }
+      } else {
+        setErrorMsg("Something went wrong saving your response.");
+        setIsSubmitting(false);
+      }
     } else {
-      setErrorMsg("Something went wrong. Please try again.");
+      const result = await submitFormResponse(form._id, responsesArray);
+      setIsSubmitting(false);
+      if (result.success) {
+        setIsSuccess(true);
+      } else {
+        setErrorMsg("Something went wrong. Please try again.");
+      }
     }
   };
 
@@ -147,9 +249,10 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
               ) : (
                 <p className="text-gray-500 font-medium">Please fill out the form below.</p>
               )}
+
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6 -mx-3 px-3" noValidate>
               
               <AnimatePresence>
                 {errorMsg && (
@@ -157,7 +260,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
                     initial={{ opacity: 0, y: -10 }} 
                     animate={{ opacity: 1, y: 0 }} 
                     exit={{ opacity: 0 }}
-                    className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm font-semibold text-center"
+                    className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm font-semibold text-center mx-3"
                   >
                     {errorMsg}
                   </motion.div>
@@ -165,8 +268,12 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
               </AnimatePresence>
 
               {form.fields.map((field: any, idx: number) => (
-                <div key={idx} className="space-y-2">
-                  <label className="block text-sm font-bold text-gray-700">
+                <div 
+                  key={idx} 
+                  id={`field-${field.label.replace(/\s+/g, '-')}`}
+                  className={`space-y-2 p-3 rounded-2xl transition-all duration-300 ${errorField === field.label ? 'ring-2 ring-red-500 bg-red-50/50' : ''}`}
+                >
+                  <label className="block text-sm font-bold text-gray-700 px-1">
                     {field.label} {field.required && <span className="text-red-500">*</span>}
                   </label>
                   {field.type === 'dropdown' ? (
@@ -258,7 +365,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
                           className="px-6 py-3 bg-[#1E4E8C]/10 hover:bg-[#1E4E8C]/20 text-[#1E4E8C] font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mx-auto"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                          Review and Accept Undertaking
+                          Click here to Review and Accept Undertaking
                         </button>
                       )}
                     </div>
@@ -270,7 +377,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
                       onChange={(e) => setResponses({ ...responses, [field.label]: e.target.value })}
                       disabled={isSubmitting}
                       className="w-full bg-white/90 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1E4E8C]/20 focus:border-[#1E4E8C] transition-all placeholder-gray-400 font-medium text-lg shadow-sm"
-                      placeholder={field.type === 'email' ? 'your@email.com' : field.type === 'number' ? '0' : 'Your answer'}
+                      placeholder={field.type === 'email' ? 'your@email.com' : field.type === 'number' ? field.label : 'Your answer'}
                     />
                   )}
                 </div>
@@ -284,10 +391,10 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
                 {isSubmitting ? (
                   <>
                     <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                    Submitting...
+                    Processing...
                   </>
                 ) : (
-                  "Submit Response"
+                  form.isPaymentEnabled && form.paymentAmount > 0 ? `Pay ₹${form.paymentAmount} & Submit` : "Submit Response"
                 )}
               </button>
 

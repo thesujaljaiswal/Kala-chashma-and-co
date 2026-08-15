@@ -8,6 +8,8 @@ export interface IResponseField {
 export interface IFormResponse extends Document {
   formId: mongoose.Types.ObjectId;
   responses: IResponseField[];
+  paymentStatus?: 'pending' | 'success' | 'failed' | 'not_required';
+  transactionId?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -19,7 +21,9 @@ const ResponseFieldSchema = new mongoose.Schema({
 
 const FormResponseSchema = new mongoose.Schema<IFormResponse>({
   formId: { type: Schema.Types.ObjectId, ref: "Form", required: true },
-  responses: { type: [ResponseFieldSchema], default: [] }
+  responses: { type: [ResponseFieldSchema], default: [] },
+  paymentStatus: { type: String, enum: ['pending', 'success', 'failed', 'not_required'], default: 'not_required' },
+  transactionId: { type: String, default: null }
 }, {
   timestamps: true
 });

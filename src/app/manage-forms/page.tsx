@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import AdminSidebar from "@/components/AdminSidebar";
-import { getForms, createForm, updateForm, deleteForm, getFormResponses } from "@/app/actions";
+import { getForms, createForm, updateForm, deleteForm, getFormResponses, getEvents } from "@/app/actions";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -13,6 +13,7 @@ export default function ManageFormsPage() {
   const router = useRouter();
 
   const [forms, setForms] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
@@ -24,9 +25,15 @@ export default function ManageFormsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [draggedFieldIdx, setDraggedFieldIdx] = useState<number | null>(null);
 
+  const [isRegistrationForm, setIsRegistrationForm] = useState(false);
+  const [registrationEventId, setRegistrationEventId] = useState("");
+  const [isPaymentEnabled, setIsPaymentEnabled] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState<number | "">("");
+
   const [viewResponsesFor, setViewResponsesFor] = useState<any>(null);
   const [responses, setResponses] = useState<any[]>([]);
   const [isLoadingResponses, setIsLoadingResponses] = useState(false);
+  const [selectedPaymentDetails, setSelectedPaymentDetails] = useState<any>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -34,16 +41,29 @@ export default function ManageFormsPage() {
     }
   }, [status, router]);
 
-  const fetchForms = async () => {
+  const fetchFormsAndEvents = async () => {
     setIsLoading(true);
-    const data = await getForms();
-    setForms(data);
+    const [formsData, eventsData] = await Promise.all([getForms(), getEvents()]);
+    
+    // Filter out past events for the dropdown
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const activeEvents = eventsData.filter((e: any) => {
+      if (!e.date) return false;
+      const parts = e.date.split("-");
+      if (parts.length !== 3) return false;
+      const eventDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      return eventDate >= today;
+    });
+
+    setForms(formsData);
+    setEvents(activeEvents);
     setIsLoading(false);
   };
 
   useEffect(() => {
     if (status === "authenticated") {
-      fetchForms();
+      fetchFormsAndEvents();
     }
   }, [status]);
 
@@ -68,11 +88,19 @@ export default function ManageFormsPage() {
       setFormName(form.name);
       setFormDescription(form.description || "");
       setCustomFields(form.fields || []);
+      setIsRegistrationForm(form.isRegistrationForm || false);
+      setRegistrationEventId(form.registrationEventId || "");
+      setIsPaymentEnabled(form.isPaymentEnabled || false);
+      setPaymentAmount(form.paymentAmount || "");
     } else {
       setEditingForm(null);
       setFormName("");
       setFormDescription("");
       setCustomFields([]);
+      setIsRegistrationForm(false);
+      setRegistrationEventId("");
+      setIsPaymentEnabled(false);
+      setPaymentAmount("");
     }
     setIsBuilderOpen(true);
   };
@@ -138,18 +166,19 @@ export default function ManageFormsPage() {
     
     setIsSaving(true);
     let success = false;
+    const amount = Number(paymentAmount) || 0;
     if (editingForm) {
-      const res = await updateForm(editingForm._id, formName, formDescription, validFields);
+      const res = await updateForm(editingForm._id, formName, formDescription, validFields, isRegistrationForm, registrationEventId, isPaymentEnabled, amount);
       success = res.success;
     } else {
-      const res = await createForm(formName, formDescription, validFields);
+      const res = await createForm(formName, formDescription, validFields, isRegistrationForm, registrationEventId, isPaymentEnabled, amount);
       success = res.success;
     }
     
     setIsSaving(false);
     if (success) {
       setIsBuilderOpen(false);
-      fetchForms();
+      fetchFormsAndEvents();
     } else {
       alert("Failed to save form.");
     }
@@ -159,7 +188,7 @@ export default function ManageFormsPage() {
     if (confirm(`Are you sure you want to delete the form "${name}"? This will also delete all responses.`)) {
       const res = await deleteForm(id);
       if (res.success) {
-        fetchForms();
+        fetchFormsAndEvents();
       }
     }
   };
@@ -285,8 +314,11 @@ export default function ManageFormsPage() {
                       <tr>
                         <th className="px-4 py-3 rounded-l-xl">Submitted</th>
                         {viewResponsesFor.fields.map((f: any, i: number) => (
-                          <th key={i} className={`px-4 py-3 ${i === viewResponsesFor.fields.length - 1 ? 'rounded-r-xl' : ''}`}>{f.label}</th>
+                          <th key={i} className={`px-4 py-3 ${(!viewResponsesFor.isPaymentEnabled && i === viewResponsesFor.fields.length - 1) ? 'rounded-r-xl' : ''}`}>{f.label}</th>
                         ))}
+                        {viewResponsesFor.isPaymentEnabled && (
+                          <th className="px-4 py-3 rounded-r-xl">Payment Details</th>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
@@ -299,6 +331,16 @@ export default function ManageFormsPage() {
                               <td key={i} className="px-4 py-4 text-white font-medium">{answer}</td>
                             );
                           })}
+                          {viewResponsesFor.isPaymentEnabled && (
+                            <td className="px-4 py-4">
+                              <button
+                                onClick={() => setSelectedPaymentDetails(res)}
+                                className="bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 border border-indigo-500/30 text-xs font-semibold py-1.5 px-3 rounded-xl transition-colors whitespace-nowrap"
+                              >
+                                View Details
+                              </button>
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>
@@ -333,6 +375,35 @@ export default function ManageFormsPage() {
                     placeholder="Add some instructions or a welcome message for your users..."
                   />
                 </div>
+                
+                <div className="flex items-center gap-3 py-2">
+                  <input
+                    type="checkbox"
+                    id="isRegistrationForm"
+                    checked={isRegistrationForm}
+                    onChange={(e) => setIsRegistrationForm(e.target.checked)}
+                    className="w-5 h-5 rounded border-gray-600 bg-black/40 text-blue-500 focus:ring-blue-500"
+                  />
+                  <label htmlFor="isRegistrationForm" className="text-white font-bold cursor-pointer">
+                    This is an event registration form
+                  </label>
+                </div>
+
+                {isRegistrationForm && (
+                  <div>
+                    <label className="block text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">Select Event</label>
+                    <select
+                      value={registrationEventId}
+                      onChange={(e) => setRegistrationEventId(e.target.value)}
+                      className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm appearance-none"
+                    >
+                      <option value="" className="bg-gray-800">Select an event...</option>
+                      {events.map((evt) => (
+                        <option key={evt._id} value={evt._id} className="bg-gray-800">{evt.name} - {formatDate(evt.date)}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
@@ -504,6 +575,43 @@ export default function ManageFormsPage() {
                   </button>
                 </div>
 
+                <div className="mt-8 pt-6 border-t border-white/10">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                    <div>
+                      <h2 className="text-xl font-bold text-white mb-1">Payment Integration</h2>
+                      <p className="text-sm text-gray-400">Enable PhonePe payment gateway for this form.</p>
+                    </div>
+                  </div>
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="isPaymentEnabled"
+                        checked={isPaymentEnabled}
+                        onChange={(e) => setIsPaymentEnabled(e.target.checked)}
+                        className="w-5 h-5 rounded border-gray-600 bg-black/40 text-blue-500 focus:ring-blue-500 cursor-pointer"
+                      />
+                      <label htmlFor="isPaymentEnabled" className="text-white font-bold cursor-pointer">
+                        Enable Payment for this form
+                      </label>
+                    </div>
+                    {isPaymentEnabled && (
+                      <div className="pt-2 pl-8">
+                        <label className="block text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">Amount to collect (₹)</label>
+                        <input
+                          type="number"
+                          required={isPaymentEnabled}
+                          value={paymentAmount}
+                          onChange={(e) => setPaymentAmount(Number(e.target.value))}
+                          className="w-full sm:w-64 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg font-bold placeholder-gray-600 transition-all"
+                          placeholder="e.g. 450"
+                          min="1"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <div className="mt-8 pt-6 border-t border-white/10 flex justify-end gap-4">
                   <button
                     onClick={() => setIsBuilderOpen(false)}
@@ -524,6 +632,77 @@ export default function ManageFormsPage() {
 
         </div>
       </div>
+
+      <AnimatePresence>
+        {selectedPaymentDetails && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="bg-[#1A1A1A] border border-white/10 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+              
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-bold text-white">Payment Details</h3>
+                <button
+                  onClick={() => setSelectedPaymentDetails(null)}
+                  className="text-gray-400 hover:text-white transition-colors p-1"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex justify-between items-center">
+                  <span className="text-gray-400 font-medium text-sm">Status</span>
+                  <span className={`font-bold px-3 py-1 rounded-xl text-sm ${
+                    selectedPaymentDetails.paymentStatus === 'success' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                    selectedPaymentDetails.paymentStatus === 'failed' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+                    'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                  }`}>
+                    {(selectedPaymentDetails.paymentStatus || 'pending').toUpperCase()}
+                  </span>
+                </div>
+
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex justify-between items-center">
+                  <span className="text-gray-400 font-medium text-sm">Amount</span>
+                  <span className="text-white font-bold">₹{viewResponsesFor?.paymentAmount || 0}</span>
+                </div>
+
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                  <span className="text-gray-400 font-medium text-sm block mb-1">Transaction ID</span>
+                  <span className="text-white font-mono text-sm break-all">
+                    {selectedPaymentDetails.transactionId || 'N/A'}
+                  </span>
+                </div>
+                
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                  <span className="text-gray-400 font-medium text-sm block mb-1">Response Submitted On</span>
+                  <span className="text-white text-sm">
+                    {new Date(selectedPaymentDetails.createdAt).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-8">
+                <button
+                  onClick={() => setSelectedPaymentDetails(null)}
+                  className="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-3 rounded-xl transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

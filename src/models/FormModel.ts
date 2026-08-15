@@ -12,6 +12,10 @@ export interface IForm extends Document {
   description?: string;
   shareId: string;
   fields: IFormField[];
+  isRegistrationForm?: boolean;
+  registrationEventId?: string;
+  isPaymentEnabled?: boolean;
+  paymentAmount?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,7 +31,11 @@ const FormSchema = new mongoose.Schema<IForm>({
   name: { type: String, required: true },
   description: { type: String, default: "" },
   shareId: { type: String, required: true, unique: true },
-  fields: { type: [FormFieldSchema], default: [] }
+  fields: { type: [FormFieldSchema], default: [] },
+  isRegistrationForm: { type: Boolean, default: false },
+  registrationEventId: { type: String, default: null },
+  isPaymentEnabled: { type: Boolean, default: false },
+  paymentAmount: { type: Number, default: 0 }
 }, {
   timestamps: true
 });

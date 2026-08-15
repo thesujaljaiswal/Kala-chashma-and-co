@@ -6,6 +6,7 @@ import EventModel from "@/models/EventModel";
 import { FormModel } from "@/models/FormModel";
 import { FormResponseModel } from "@/models/FormResponseModel";
 import crypto from "crypto";
+import Razorpay from "razorpay";
 
 // Helper to generate a random 24 char hex string for the share URL
 function generateShareId() {
@@ -99,11 +100,11 @@ export async function getFormByShareId(shareId: string) {
   }
 }
 
-export async function createForm(name: string, description: string, fields: any[]) {
+export async function createForm(name: string, description: string, fields: any[], isRegistrationForm: boolean = false, registrationEventId: string | null = null, isPaymentEnabled: boolean = false, paymentAmount: number = 0) {
   try {
     await dbConnect();
     const shareId = Math.random().toString(36).substring(2, 10);
-    const form = await FormModel.create({ name, description, shareId, fields });
+    const form = await FormModel.create({ name, description, shareId, fields, isRegistrationForm, registrationEventId: registrationEventId ?? undefined, isPaymentEnabled, paymentAmount });
     return { success: true, shareId: form.shareId };
   } catch (error) {
     console.error("Failed to create form:", error);
@@ -111,10 +112,10 @@ export async function createForm(name: string, description: string, fields: any[
   }
 }
 
-export async function updateForm(id: string, name: string, description: string, fields: any[]) {
+export async function updateForm(id: string, name: string, description: string, fields: any[], isRegistrationForm: boolean = false, registrationEventId: string | null = null, isPaymentEnabled: boolean = false, paymentAmount: number = 0) {
   try {
     await dbConnect();
-    await FormModel.findByIdAndUpdate(id, { name, description, fields });
+    await FormModel.findByIdAndUpdate(id, { name, description, fields, isRegistrationForm, registrationEventId: registrationEventId ?? undefined, isPaymentEnabled, paymentAmount });
     return { success: true };
   } catch (error) {
     console.error("Failed to update form:", error);
@@ -134,11 +135,11 @@ export async function deleteForm(id: string) {
   }
 }
 
-export async function submitFormResponse(formId: string, responses: { label: string; value: string }[]) {
+export async function submitFormResponse(formId: string, responses: { label: string; value: string }[], paymentStatus?: 'pending' | 'success' | 'failed' | 'not_required', transactionId?: string) {
   try {
     await dbConnect();
-    await FormResponseModel.create({ formId, responses });
-    return { success: true };
+    const response = await FormResponseModel.create({ formId, responses, paymentStatus, transactionId });
+    return { success: true, responseId: response._id.toString() };
   } catch (error) {
     console.error("Failed to submit form response:", error);
     return { success: false, error: "Failed to submit form response" };
@@ -249,3 +250,97 @@ export async function checkTicketByPhone(phone: string, eventId: string) {
     return { success: false, error: "Failed to look up ticket" };
   }
 }
+
+// ----------------------------------------------------
+// ACCOUNTS & REVENUE
+// ----------------------------------------------------
+
+export async function getAccountsData() {
+  try {
+    const key_id = process.env.RAZORPAY_KEY_ID;
+    const key_secret = process.env.RAZORPAY_KEY_SECRET;
+    
+    if (!key_id || !key_secret) {
+      return { success: false, error: "Razorpay API keys are not configured." };
+    }
+
+    const razorpay = new Razorpay({ key_id, key_secret });
+
+    // Fetch payments starting from the beginning of this month
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const fromTimestamp = Math.floor(startOfMonth.getTime() / 1000);
+
+    const paymentsRes = await razorpay.payments.all({
+      from: fromTimestamp,
+      count: 100, // Fetch up to 100 recent payments this month
+    });
+
+    const payments = paymentsRes.items || [];
+    
+    // Fetch recent settlements
+    const settlementsRes = await razorpay.settlements.all({
+      count: 10
+    });
+    const settlements = settlementsRes.items || [];
+    
+    let todayGross = 0;
+    let todayNet = 0;
+    let monthlyGross = 0;
+    let monthlyNet = 0;
+    const eventWiseRevenue: Record<string, { eventName: string, revenue: number, transactionsCount: number }> = {};
+
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    for (const p of payments) {
+      if (p.status !== 'captured') continue;
+
+      const amount = (p.amount as number) / 100; // Gross in INR
+      // Razorpay fee is in paise. If not present, default to 0 for estimation.
+      const fee = p.fee ? (p.fee as number) / 100 : amount * 0.02; // ~2% fallback estimate
+      const netAmount = amount - fee;
+
+      const createdAt = new Date((p.created_at as number) * 1000);
+
+      monthlyGross += amount;
+      monthlyNet += netAmount;
+      if (createdAt >= startOfToday) {
+        todayGross += amount;
+        todayNet += netAmount;
+      }
+
+      // Group by the formName we passed in notes
+      const formName = p.notes?.formName || "Unknown Form/Event";
+      
+      if (!eventWiseRevenue[formName]) {
+        eventWiseRevenue[formName] = { eventName: formName as string, revenue: 0, transactionsCount: 0 };
+      }
+      eventWiseRevenue[formName].revenue += amount; // We'll show gross in the event breakdown for simplicity
+      eventWiseRevenue[formName].transactionsCount += 1;
+    }
+
+    const pastSettlements = settlements.map(s => ({
+      id: s.id,
+      amount: (s.amount as number) / 100,
+      fees: (s.fees as number) / 100,
+      tax: (s.tax as number) / 100,
+      status: s.status,
+      utr: s.utr,
+      createdAt: new Date((s.created_at as number) * 1000).toISOString()
+    }));
+
+    return {
+      success: true,
+      todayGross,
+      todayNet,
+      monthlyGross,
+      monthlyNet,
+      eventWise: Object.values(eventWiseRevenue).sort((a, b) => b.revenue - a.revenue),
+      pastSettlements
+    };
+  } catch (error) {
+    console.error("Failed to get accounts data from Razorpay:", error);
+    return { success: false, error: "Failed to fetch data from Razorpay" };
+  }
+}
+
