@@ -10,6 +10,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
   const [isLoading, setIsLoading] = useState(true);
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -92,6 +93,8 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
               description: form.name,
               order_id: data.order_id,
               handler: async function (response: any) {
+                setIsSubmitting(true);
+                setIsVerifyingPayment(true);
                 // Verify payment on our backend
                 try {
                   const verifyRes = await fetch('/api/payment/callback', {
@@ -107,11 +110,16 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
                   const verifyData = await verifyRes.json();
                   if (verifyData.success) {
                     setIsSuccess(true);
+                    setIsVerifyingPayment(false);
                   } else {
                     setErrorMsg("Payment verification failed. Please contact support.");
+                    setIsSubmitting(false);
+                    setIsVerifyingPayment(false);
                   }
                 } catch (e) {
                   setErrorMsg("Error during payment verification.");
+                  setIsSubmitting(false);
+                  setIsVerifyingPayment(false);
                 }
               },
               prefill: {
@@ -166,6 +174,23 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
             <div className="w-4 h-4 bg-[#E86A28] rounded-full animate-bounce"></div>
           </div>
           <span className="text-gray-500 font-medium">Loading Form...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (isVerifyingPayment) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-[#FAF9F6]">
+        <div className="flex flex-col items-center gap-6 bg-white/80 backdrop-blur-xl p-10 rounded-3xl shadow-xl border border-gray-100 max-w-sm w-full">
+          <div className="relative w-20 h-20">
+            <div className="absolute inset-0 border-4 border-[#1E4E8C]/20 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-[#E86A28] rounded-full border-t-transparent animate-spin"></div>
+          </div>
+          <div className="text-center">
+            <h3 className="text-2xl font-black text-gray-900 mb-2">Verifying Payment</h3>
+            <p className="text-gray-500 font-medium text-sm leading-relaxed">Please wait securely while we process your transaction...</p>
+          </div>
         </div>
       </div>
     );

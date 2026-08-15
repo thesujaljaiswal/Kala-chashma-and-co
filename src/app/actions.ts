@@ -7,6 +7,8 @@ import { FormModel } from "@/models/FormModel";
 import { FormResponseModel } from "@/models/FormResponseModel";
 import crypto from "crypto";
 import Razorpay from "razorpay";
+import nodemailer from "nodemailer";
+import QRCode from "qrcode";
 
 // Helper to generate a random 24 char hex string for the share URL
 function generateShareId() {
@@ -100,11 +102,11 @@ export async function getFormByShareId(shareId: string) {
   }
 }
 
-export async function createForm(name: string, description: string, fields: any[], isRegistrationForm: boolean = false, registrationEventId: string | null = null, isPaymentEnabled: boolean = false, paymentAmount: number = 0) {
+export async function createForm(name: string, description: string, fields: any[], isRegistrationForm: boolean = false, registrationEventId: string | null = null, isPaymentEnabled: boolean = false, paymentAmount: number = 0, isEmailTicketEnabled: boolean = false) {
   try {
     await dbConnect();
     const shareId = Math.random().toString(36).substring(2, 10);
-    const form = await FormModel.create({ name, description, shareId, fields, isRegistrationForm, registrationEventId: registrationEventId ?? undefined, isPaymentEnabled, paymentAmount });
+    const form = await FormModel.create({ name, description, shareId, fields, isRegistrationForm, registrationEventId: registrationEventId ?? undefined, isPaymentEnabled, paymentAmount, isEmailTicketEnabled });
     return { success: true, shareId: form.shareId };
   } catch (error) {
     console.error("Failed to create form:", error);
@@ -112,10 +114,10 @@ export async function createForm(name: string, description: string, fields: any[
   }
 }
 
-export async function updateForm(id: string, name: string, description: string, fields: any[], isRegistrationForm: boolean = false, registrationEventId: string | null = null, isPaymentEnabled: boolean = false, paymentAmount: number = 0) {
+export async function updateForm(id: string, name: string, description: string, fields: any[], isRegistrationForm: boolean = false, registrationEventId: string | null = null, isPaymentEnabled: boolean = false, paymentAmount: number = 0, isEmailTicketEnabled: boolean = false) {
   try {
     await dbConnect();
-    await FormModel.findByIdAndUpdate(id, { name, description, fields, isRegistrationForm, registrationEventId: registrationEventId ?? undefined, isPaymentEnabled, paymentAmount });
+    await FormModel.findByIdAndUpdate(id, { name, description, fields, isRegistrationForm, registrationEventId: registrationEventId ?? undefined, isPaymentEnabled, paymentAmount, isEmailTicketEnabled });
     return { success: true };
   } catch (error) {
     console.error("Failed to update form:", error);
@@ -139,10 +141,180 @@ export async function submitFormResponse(formId: string, responses: { label: str
   try {
     await dbConnect();
     const response = await FormResponseModel.create({ formId, responses, paymentStatus, transactionId });
+    
+    // Only process ticket immediately if payment is not required or already successful
+    if (!paymentStatus || paymentStatus === 'not_required' || paymentStatus === 'success') {
+      await processEmailTicket(response._id.toString());
+    }
+    
     return { success: true, responseId: response._id.toString() };
   } catch (error) {
     console.error("Failed to submit form response:", error);
     return { success: false, error: "Failed to submit form response" };
+  }
+}
+
+export async function processEmailTicket(formResponseId: string) {
+  try {
+    await dbConnect();
+    const response = await FormResponseModel.findById(formResponseId);
+    if (!response || response.ticketId) return { success: false };
+
+    const form = await FormModel.findById(response.formId);
+    if (!form?.isEmailTicketEnabled) return { success: false };
+
+    // Get Event Details if applicable
+    let eventDate = new Date().toLocaleDateString('en-GB');
+    if (form.registrationEventId) {
+      const EventModel = (await import("@/models/EventModel")).default;
+      const eventInfo = await EventModel.findById(form.registrationEventId);
+      if (eventInfo) {
+        const parts = eventInfo.date.split('-');
+        if (parts.length === 3) eventDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+    }
+
+    const emailField = form.fields.find(f => f.type === 'email');
+    const userEmail = emailField ? response.responses.find(r => r.label === emailField.label)?.value : null;
+    
+    const nameField = form.fields.find(f => f.label.toLowerCase().includes('name'));
+    const userName = nameField ? response.responses.find(r => r.label === nameField.label)?.value || 'Guest' : 'Guest';
+
+    const phoneField = form.fields.find(f => f.label.toLowerCase().includes('phone') || f.label.toLowerCase().includes('contact') || f.label.toLowerCase().includes('mobile') || f.label.toLowerCase().includes('whatsapp'));
+    const userPhone = phoneField ? response.responses.find(r => r.label === phoneField.label)?.value || 'N/A' : 'N/A';
+
+    const isPaid = response.paymentStatus === 'success' && form.isPaymentEnabled && (form.paymentAmount ?? 0) > 0;
+    const paymentDetailsHTML = isPaid ? `
+    <tr>
+      <td style="padding: 10px 40px 25px 40px;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top: 1px solid rgba(198, 156, 109, 0.2); border-bottom: 1px solid rgba(198, 156, 109, 0.2); padding: 15px 0;">
+          <tr>
+            <td width="50%" valign="top">
+              <p style="font-size: 9px; color: rgba(217, 179, 130, 0.6); text-transform: uppercase; letter-spacing: 2px; margin: 0 0 4px 0;">Contribution</p>
+              <p style="font-size: 14px; font-weight: 300; margin: 0; color: #F5E6D3; letter-spacing: 1px;">₹${form.paymentAmount ?? 0}</p>
+            </td>
+            <td width="50%" align="right" valign="top">
+              <p style="font-size: 9px; color: rgba(217, 179, 130, 0.6); text-transform: uppercase; letter-spacing: 2px; margin: 0 0 4px 0;">Transaction ID</p>
+              <p style="font-size: 11px; font-weight: 300; margin: 0; color: #F5E6D3; letter-spacing: 1px; font-family: monospace;">${response.transactionId || 'N/A'}</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>` : '';
+
+    let ticketId: string | null = null;
+    if (userEmail && process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
+      ticketId = `TKT-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+      try {
+        const qrCodeDataUrl = await QRCode.toDataURL(ticketId, { margin: 1, scale: 5 });
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: process.env.GMAIL_USER,
+            pass: process.env.GMAIL_APP_PASSWORD
+          }
+        });
+
+        await transporter.sendMail({
+          from: `"${form.name}" <${process.env.GMAIL_USER}>`,
+          to: userEmail,
+          subject: `Your Pass for ${form.name}`,
+          priority: 'high',
+          attachments: [{
+            filename: 'qrcode.png',
+            path: qrCodeDataUrl,
+            cid: 'qrcode'
+          }],
+          html: `
+<div style="background-color: #FAF9F6; padding: 60px 20px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+  <table width="100%" align="center" cellpadding="0" cellspacing="0" border="0" style="background-color: #0B1320; border-radius: 16px; color: #F5E6D3; width: 100%; max-width: 440px; margin: 0 auto; box-shadow: 0 25px 50px -12px rgba(11, 19, 32, 0.25); border: 1px solid #C69C6D; overflow: hidden;">
+    
+    <!-- Top Gold Bar -->
+    <tr>
+      <td style="height: 6px; background: linear-gradient(90deg, #A67C52, #D9B382, #A67C52);"></td>
+    </tr>
+
+    <!-- Header -->
+    <tr>
+      <td style="padding: 45px 40px; text-align: center; background-image: radial-gradient(circle at center, rgba(198, 156, 109, 0.05) 0%, transparent 70%); border-bottom: 1px solid rgba(198, 156, 109, 0.2);">
+        <h1 style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 26px; font-weight: normal; margin: 0; color: #D9B382; letter-spacing: 3px; text-transform: uppercase;">Kaala CHASMA & co</h1>
+        <p style="margin: 12px 0 0 0; font-size: 10px; color: rgba(217, 179, 130, 0.7); letter-spacing: 4px; text-transform: uppercase;">Exclusive Admittance</p>
+      </td>
+    </tr>
+    
+    <!-- Event Details -->
+    <tr>
+      <td style="padding: 40px 40px 15px 40px;">
+        <p style="font-size: 9px; color: rgba(217, 179, 130, 0.6); text-transform: uppercase; letter-spacing: 2px; margin: 0 0 8px 0;">Event</p>
+        <p style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 28px; font-weight: normal; margin: 0; color: #F5E6D3; line-height: 1.3;">${form.name}</p>
+      </td>
+    </tr>
+    
+    <tr>
+      <td style="padding: 10px 40px 25px 40px;">
+        <p style="font-size: 9px; color: rgba(217, 179, 130, 0.6); text-transform: uppercase; letter-spacing: 2px; margin: 0 0 8px 0;">Date & Time</p>
+        <p style="font-size: 14px; font-weight: 300; margin: 0; color: #F5E6D3; letter-spacing: 1px;">${eventDate}</p>
+      </td>
+    </tr>
+    
+    ${paymentDetailsHTML}
+    
+    <!-- Attendee Info -->
+    <tr>
+      <td style="padding: 10px 40px 40px 40px;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td valign="top" width="70%">
+              <p style="font-size: 9px; color: rgba(217, 179, 130, 0.6); text-transform: uppercase; letter-spacing: 2px; margin: 0 0 8px 0;">Honored Guest</p>
+              <p style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 22px; font-weight: normal; margin: 0 0 10px 0; color: #F5E6D3;">${userName}</p>
+              ${userPhone !== 'N/A' ? `<p style="font-size: 12px; font-weight: 300; margin: 0; color: rgba(245, 230, 211, 0.8); letter-spacing: 1px;">${userPhone}</p>` : ''}
+            </td>
+            <td align="right" valign="top" width="30%">
+              <div style="border: 1px solid #C69C6D; padding: 15px; border-radius: 8px; text-align: center;">
+                <p style="font-size: 9px; color: rgba(217, 179, 130, 0.8); text-transform: uppercase; letter-spacing: 2px; margin: 0 0 6px 0;">Admit</p>
+                <p style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 26px; font-weight: normal; margin: 0; color: #D9B382;">1</p>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    
+    <!-- Tear-away QR section -->
+    <tr>
+      <td style="padding: 40px; background-color: rgba(0,0,0,0.2); border-top: 1px dashed rgba(198, 156, 109, 0.4);">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td valign="middle">
+              <p style="font-size: 9px; color: rgba(217, 179, 130, 0.6); text-transform: uppercase; letter-spacing: 2px; margin: 0 0 8px 0;">Authorization</p>
+              <p style="font-family: monospace; font-size: 16px; font-weight: 300; color: #D9B382; letter-spacing: 2px; margin: 0;">${ticketId}</p>
+            </td>
+            <td align="right" valign="middle">
+              <div style="background-color: #F5E6D3; padding: 8px; border-radius: 8px; display: inline-block;">
+                <img src="cid:qrcode" alt="QR Code" width="100" height="100" style="display: block; border-radius: 4px;" />
+              </div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+  <p style="text-align: center; font-size: 11px; color: #888888; margin-top: 40px; margin-bottom: 0; text-transform: uppercase; letter-spacing: 1px;">Present this pass upon arrival.</p>
+</div>
+          `
+        });
+      } catch (emailError) {
+        console.error("Failed to send email ticket:", emailError);
+      }
+    }
+
+    if (ticketId) {
+      await FormResponseModel.findByIdAndUpdate(formResponseId, { ticketId, isPresent: false });
+    }
+    return { success: true };
+  } catch (err) {
+    console.error("processEmailTicket Error:", err);
+    return { success: false };
   }
 }
 
@@ -343,4 +515,92 @@ export async function getAccountsData() {
     return { success: false, error: "Failed to fetch data from Razorpay" };
   }
 }
+
+export async function getAttendanceList(eventId: string) {
+  try {
+    await dbConnect();
+    const forms = await FormModel.find({ registrationEventId: eventId });
+    if (!forms || forms.length === 0) return [];
+
+    const formIds = forms.map(f => f._id);
+    const responses = await FormResponseModel.find({ formId: { $in: formIds } });
+    
+    const attendanceList = responses.map(response => {
+      const form = forms.find(f => f._id.toString() === response.formId.toString());
+      if (!form) return null;
+      
+      const nameField = form.fields.find((f: any) => f.label.toLowerCase().includes('name'));
+      const userName = nameField ? response.responses.find((r: any) => r.label === nameField.label)?.value || 'Guest' : 'Guest';
+
+      const phoneField = form.fields.find((f: any) => f.label.toLowerCase().includes('phone') || f.label.toLowerCase().includes('contact') || f.label.toLowerCase().includes('mobile') || f.label.toLowerCase().includes('whatsapp'));
+      const userPhone = phoneField ? response.responses.find((r: any) => r.label === phoneField.label)?.value || 'N/A' : 'N/A';
+
+      return {
+        _id: response._id.toString(),
+        ticketId: response.ticketId,
+        passengerName: userName,
+        phone: userPhone,
+        isPresent: response.isPresent || false
+      };
+    }).filter(Boolean);
+    
+    return attendanceList;
+  } catch (error) {
+    console.error("Error fetching attendance list:", error);
+    return [];
+  }
+}
+
+export async function markAttendance(ticketId: string, eventId: string) {
+  try {
+    await dbConnect();
+    
+    const response = await FormResponseModel.findOne({ ticketId });
+    if (!response) {
+      return { success: false, message: "Ticket not found" };
+    }
+    
+    const form = await FormModel.findById(response.formId);
+    if (!form || form.registrationEventId !== eventId) {
+      return { success: false, message: "Ticket belongs to a different event" };
+    }
+    
+    if (response.isPresent) {
+      return { success: false, alreadyPresent: true, message: "Attendee already marked present" };
+    }
+    
+    response.isPresent = true;
+    await response.save();
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Error marking attendance:", error);
+    return { success: false, message: "Server error" };
+  }
+}
+
+export async function toggleAttendanceStatus(ticketId: string, eventId: string, status: boolean) {
+  try {
+    await dbConnect();
+    
+    const response = await FormResponseModel.findOne({ ticketId });
+    if (!response) {
+      return { success: false, message: "Ticket not found" };
+    }
+    
+    const form = await FormModel.findById(response.formId);
+    if (!form || form.registrationEventId !== eventId) {
+      return { success: false, message: "Ticket belongs to a different event" };
+    }
+    
+    response.isPresent = status;
+    await response.save();
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Error toggling attendance:", error);
+    return { success: false, message: "Server error" };
+  }
+}
+
 

@@ -30,6 +30,10 @@ export async function POST(req: Request) {
         transactionId: razorpay_payment_id
       });
 
+      // Generate and send ticket email after successful payment
+      const { processEmailTicket } = await import('@/app/actions');
+      await processEmailTicket(formResponseId);
+
       return NextResponse.json({ success: true });
     } else {
       await FormResponseModel.findByIdAndUpdate(formResponseId, {

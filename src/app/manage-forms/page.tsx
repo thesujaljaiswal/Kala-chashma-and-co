@@ -29,6 +29,7 @@ export default function ManageFormsPage() {
   const [registrationEventId, setRegistrationEventId] = useState("");
   const [isPaymentEnabled, setIsPaymentEnabled] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState<number | "">("");
+  const [isEmailTicketEnabled, setIsEmailTicketEnabled] = useState(false);
 
   const [viewResponsesFor, setViewResponsesFor] = useState<any>(null);
   const [responses, setResponses] = useState<any[]>([]);
@@ -92,6 +93,7 @@ export default function ManageFormsPage() {
       setRegistrationEventId(form.registrationEventId || "");
       setIsPaymentEnabled(form.isPaymentEnabled || false);
       setPaymentAmount(form.paymentAmount || "");
+      setIsEmailTicketEnabled(form.isEmailTicketEnabled || false);
     } else {
       setEditingForm(null);
       setFormName("");
@@ -101,6 +103,7 @@ export default function ManageFormsPage() {
       setRegistrationEventId("");
       setIsPaymentEnabled(false);
       setPaymentAmount("");
+      setIsEmailTicketEnabled(false);
     }
     setIsBuilderOpen(true);
   };
@@ -168,10 +171,10 @@ export default function ManageFormsPage() {
     let success = false;
     const amount = Number(paymentAmount) || 0;
     if (editingForm) {
-      const res = await updateForm(editingForm._id, formName, formDescription, validFields, isRegistrationForm, registrationEventId, isPaymentEnabled, amount);
+      const res = await updateForm(editingForm._id, formName, formDescription, validFields, isRegistrationForm, registrationEventId, isPaymentEnabled, amount, isEmailTicketEnabled);
       success = res.success;
     } else {
-      const res = await createForm(formName, formDescription, validFields, isRegistrationForm, registrationEventId, isPaymentEnabled, amount);
+      const res = await createForm(formName, formDescription, validFields, isRegistrationForm, registrationEventId, isPaymentEnabled, amount, isEmailTicketEnabled);
       success = res.success;
     }
     
@@ -609,6 +612,29 @@ export default function ManageFormsPage() {
                         />
                       </div>
                     )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="isEmailTicketEnabled"
+                        checked={isEmailTicketEnabled && customFields.some(f => f.type === 'email')}
+                        onChange={(e) => setIsEmailTicketEnabled(e.target.checked)}
+                        disabled={!customFields.some(f => f.type === 'email')}
+                        className="w-5 h-5 rounded border-gray-600 bg-black/40 text-blue-500 focus:ring-blue-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                      <label htmlFor="isEmailTicketEnabled" className="text-white font-bold cursor-pointer">
+                        Send Email Ticket
+                      </label>
+                    </div>
+                    <p className="text-sm text-gray-400 pl-8">
+                      {!customFields.some(f => f.type === 'email') 
+                        ? "You must add an 'Email' field to your form to enable this feature."
+                        : "Send a ticket with a QR code to the user's email upon submission."}
+                    </p>
                   </div>
                 </div>
 
