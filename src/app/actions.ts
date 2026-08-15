@@ -158,10 +158,18 @@ export async function processEmailTicket(formResponseId: string) {
   try {
     await dbConnect();
     const response = await FormResponseModel.findById(formResponseId);
-    if (!response || response.ticketId) return { success: false };
+    console.log("processEmailTicket: found response", !!response);
+    if (!response || response.ticketId) {
+      console.log("processEmailTicket: aborting, no response or ticketId already exists", response?.ticketId);
+      return { success: false };
+    }
 
     const form = await FormModel.findById(response.formId);
-    if (!form?.isEmailTicketEnabled) return { success: false };
+    console.log("processEmailTicket: found form", !!form, form?.name, form?.isEmailTicketEnabled);
+    if (!form?.isEmailTicketEnabled) {
+      console.log("processEmailTicket: aborting, isEmailTicketEnabled is false");
+      return { success: false };
+    }
 
     // Get Event Details if applicable
     let eventDate = new Date().toLocaleDateString('en-GB');
@@ -174,9 +182,11 @@ export async function processEmailTicket(formResponseId: string) {
       }
     }
 
-    const emailField = form.fields.find(f => f.type === 'email');
+    const emailField = form.fields.find(f => f.type === 'email' || f.label.toLowerCase().includes('email'));
     const userEmail = emailField ? response.responses.find(r => r.label === emailField.label)?.value : null;
     
+    console.log("processEmailTicket: email field and user email", !!emailField, userEmail);
+
     const nameField = form.fields.find(f => f.label.toLowerCase().includes('name'));
     const userName = nameField ? response.responses.find(r => r.label === nameField.label)?.value || 'Guest' : 'Guest';
 
@@ -203,6 +213,7 @@ export async function processEmailTicket(formResponseId: string) {
     </tr>` : '';
 
     let ticketId: string | null = null;
+    console.log("processEmailTicket: preparing to send email. Checks:", { userEmail, user: !!process.env.GMAIL_USER, pass: !!process.env.GMAIL_APP_PASSWORD });
     if (userEmail && process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
       ticketId = `TKT-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
       try {
@@ -214,6 +225,7 @@ export async function processEmailTicket(formResponseId: string) {
             pass: process.env.GMAIL_APP_PASSWORD
           }
         });
+
 
         const mailOptions = {
           from: `"${form.name}" <${process.env.GMAIL_USER}>`,
