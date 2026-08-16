@@ -142,12 +142,13 @@ export async function submitFormResponse(formId: string, responses: { label: str
     await dbConnect();
     const response = await FormResponseModel.create({ formId, responses, paymentStatus, transactionId });
     
+    let emailDebugInfo: any = null;
     // Only process ticket immediately if payment is not required or already successful
     if (!paymentStatus || paymentStatus === 'not_required' || paymentStatus === 'success') {
-      await processEmailTicket(response._id.toString());
+      emailDebugInfo = await processEmailTicket(response._id.toString());
     }
     
-    return { success: true, responseId: response._id.toString() };
+    return { success: true, responseId: response._id.toString(), emailDebugInfo };
   } catch (error) {
     console.error("Failed to submit form response:", error);
     return { success: false, error: "Failed to submit form response" };
@@ -155,20 +156,29 @@ export async function submitFormResponse(formId: string, responses: { label: str
 }
 
 export async function processEmailTicket(formResponseId: string) {
+  const logs: any[] = [];
+  const logStep = (step: string, data?: any) => {
+    console.log(`[EmailTicket] ${step}`, data ?? '');
+    logs.push({ step, data: data instanceof Error ? data.toString() : data, time: new Date().toISOString() });
+  };
+
   try {
+    logStep("Started", { formResponseId });
     await dbConnect();
     const response = await FormResponseModel.findById(formResponseId);
-    console.log("processEmailTicket: found response", !!response);
+    logStep("Found response", !!response);
+    
     if (!response || response.ticketId) {
-      console.log("processEmailTicket: aborting, no response or ticketId already exists", response?.ticketId);
-      return { success: false };
+      logStep("Aborting: no response or ticketId already exists", response?.ticketId);
+      return { success: false, logs, reason: "No response or ticketId exists" };
     }
 
     const form = await FormModel.findById(response.formId);
-    console.log("processEmailTicket: found form", !!form, form?.name, form?.isEmailTicketEnabled);
+    logStep("Found form", { found: !!form, name: form?.name, isEmailTicketEnabled: form?.isEmailTicketEnabled });
+    
     if (!form?.isEmailTicketEnabled) {
-      console.log("processEmailTicket: aborting, isEmailTicketEnabled is false");
-      return { success: false };
+      logStep("Aborting: isEmailTicketEnabled is false");
+      return { success: false, logs, reason: "isEmailTicketEnabled is false" };
     }
 
     // Get Event Details if applicable
@@ -185,7 +195,7 @@ export async function processEmailTicket(formResponseId: string) {
     const emailField = form.fields.find(f => f.type === 'email' || f.label.toLowerCase().includes('email'));
     const userEmail = emailField ? response.responses.find(r => r.label === emailField.label)?.value : null;
     
-    console.log("processEmailTicket: email field and user email", !!emailField, userEmail);
+    logStep("Email field and user email", { hasEmailField: !!emailField, userEmail });
 
     const nameField = form.fields.find(f => f.label.toLowerCase().includes('name'));
     const userName = nameField ? response.responses.find(r => r.label === nameField.label)?.value || 'Guest' : 'Guest';
@@ -213,7 +223,7 @@ export async function processEmailTicket(formResponseId: string) {
     </tr>` : '';
 
     let ticketId: string | null = null;
-    console.log("processEmailTicket: preparing to send email. Checks:", { userEmail, user: !!process.env.GMAIL_USER, pass: !!process.env.GMAIL_APP_PASSWORD });
+    logStep("Checks before sending", { userEmail, hasGmailUser: !!process.env.GMAIL_USER, hasAppPassword: !!process.env.GMAIL_APP_PASSWORD });
     if (userEmail && process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
       ticketId = `TKT-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
       try {
@@ -319,25 +329,29 @@ export async function processEmailTicket(formResponseId: string) {
         await new Promise((resolve, reject) => {
           transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
-              console.error("Vercel Nodemailer Error:", error);
+              logStep("Nodemailer Send Error", error);
               reject(error);
             } else {
+              logStep("Nodemailer Send Success", info.messageId);
               resolve(info);
             }
           });
         });
       } catch (emailError) {
-        console.error("Failed to send email ticket:", emailError);
+        logStep("Exception during email send", emailError);
       }
+    } else {
+      logStep("Skipped email send, prerequisites not met");
     }
 
     if (ticketId) {
       await FormResponseModel.findByIdAndUpdate(formResponseId, { ticketId, isPresent: false });
+      logStep("Updated response with ticketId", ticketId);
     }
-    return { success: true };
+    return { success: true, logs };
   } catch (err) {
-    console.error("processEmailTicket Error:", err);
-    return { success: false };
+    logStep("Catch block error in processEmailTicket", err);
+    return { success: false, logs, error: err instanceof Error ? err.message : String(err) };
   }
 }
 
