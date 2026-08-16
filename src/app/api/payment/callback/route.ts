@@ -32,9 +32,9 @@ export async function POST(req: Request) {
 
       // Generate and send ticket email after successful payment
       const { processEmailTicket } = await import('@/app/actions');
-      const emailDebugInfo = await processEmailTicket(formResponseId);
+      await processEmailTicket(formResponseId);
 
-      return NextResponse.json({ success: true, emailDebugInfo });
+      return NextResponse.json({ success: true });
     } else {
       await FormResponseModel.findByIdAndUpdate(formResponseId, {
         paymentStatus: 'failed',
