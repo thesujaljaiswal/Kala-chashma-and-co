@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import AdminSidebar from "@/components/AdminSidebar";
-import { getForms, createForm, updateForm, deleteForm, getFormResponses, getEvents } from "@/app/actions";
+import { getForms, createForm, updateForm, deleteForm, getFormResponses, getEvents, verifyFormPayment } from "@/app/actions";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -35,6 +35,7 @@ export default function ManageFormsPage() {
   const [responses, setResponses] = useState<any[]>([]);
   const [isLoadingResponses, setIsLoadingResponses] = useState(false);
   const [selectedPaymentDetails, setSelectedPaymentDetails] = useState<any>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -202,6 +203,20 @@ export default function ManageFormsPage() {
     const res = await getFormResponses(form._id);
     setResponses(res);
     setIsLoadingResponses(false);
+  };
+
+  const handleVerifyPayment = async (responseId: string) => {
+    setIsVerifying(true);
+    const res = await verifyFormPayment(responseId);
+    if (res.success) {
+      setSelectedPaymentDetails({ ...selectedPaymentDetails, paymentStatus: 'success' });
+      const updated = await getFormResponses(viewResponsesFor._id);
+      setResponses(updated);
+      alert("Payment verified and ticket sent successfully!");
+    } else {
+      alert(res.error ? `Failed: ${res.error}` : "Failed to verify payment");
+    }
+    setIsVerifying(false);
   };
 
   const copyToClipboard = (shareId: string) => {
@@ -717,7 +732,21 @@ export default function ManageFormsPage() {
                 </div>
               </div>
 
-              <div className="mt-8">
+              <div className="mt-8 space-y-3">
+                {selectedPaymentDetails.paymentStatus === 'pending' && (
+                  <button
+                    onClick={() => handleVerifyPayment(selectedPaymentDetails._id)}
+                    disabled={isVerifying}
+                    className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {isVerifying ? (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                    )}
+                    {isVerifying ? "Verifying & Sending Ticket..." : "Verify Payment & Send Ticket"}
+                  </button>
+                )}
                 <button
                   onClick={() => setSelectedPaymentDetails(null)}
                   className="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-3 rounded-xl transition-colors"

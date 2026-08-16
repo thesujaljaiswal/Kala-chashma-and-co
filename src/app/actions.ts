@@ -161,14 +161,14 @@ export async function processEmailTicket(formResponseId: string) {
     console.log("processEmailTicket: found response", !!response);
     if (!response || response.ticketId) {
       console.log("processEmailTicket: aborting, no response or ticketId already exists", response?.ticketId);
-      return { success: false };
+      return { success: false, error: response?.ticketId ? "Ticket was already generated and sent." : "Response not found." };
     }
 
     const form = await FormModel.findById(response.formId);
     console.log("processEmailTicket: found form", !!form, form?.name, form?.isEmailTicketEnabled);
     if (!form?.isEmailTicketEnabled) {
       console.log("processEmailTicket: aborting, isEmailTicketEnabled is false");
-      return { success: false };
+      return { success: false, error: "Email tickets are disabled for this form." };
     }
 
     // Get Event Details if applicable
@@ -328,7 +328,11 @@ export async function processEmailTicket(formResponseId: string) {
         });
       } catch (emailError) {
         console.error("Failed to send email ticket:", emailError);
+        return { success: false, error: "Failed to send email via SMTP" };
       }
+    } else {
+      console.error("Missing userEmail or Gmail credentials");
+      return { success: false, error: "Missing user email or Gmail credentials" };
     }
 
     if (ticketId) {
@@ -450,92 +454,42 @@ export async function checkTicketByPhone(phone: string, eventId: string) {
 // ACCOUNTS & REVENUE
 // ----------------------------------------------------
 
+export async function verifyFormPayment(responseId: string) {
+  try {
+    await dbConnect();
+    const response = await FormResponseModel.findByIdAndUpdate(responseId, { paymentStatus: 'success' }, { new: true });
+    
+    if (response) {
+      // Trigger the email ticket processing now that payment is verified
+      const ticketResult = await processEmailTicket(response._id.toString());
+      if (ticketResult && !ticketResult.success) {
+        return { success: false, error: ticketResult.error || "Payment verified but failed to send email ticket. Check server logs." };
+      }
+      return { success: true };
+    }
+    
+    return { success: false, error: "Response not found" };
+  } catch (error) {
+    console.error("Failed to verify payment:", error);
+    return { success: false, error: "Failed to verify payment" };
+  }
+}
+
 export async function getAccountsData() {
   try {
-    const key_id = process.env.RAZORPAY_KEY_ID;
-    const key_secret = process.env.RAZORPAY_KEY_SECRET;
-    
-    if (!key_id || !key_secret) {
-      return { success: false, error: "Razorpay API keys are not configured." };
-    }
-
-    const razorpay = new Razorpay({ key_id, key_secret });
-
-    // Fetch payments starting from the beginning of this month
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const fromTimestamp = Math.floor(startOfMonth.getTime() / 1000);
-
-    const paymentsRes = await razorpay.payments.all({
-      from: fromTimestamp,
-      count: 100, // Fetch up to 100 recent payments this month
-    });
-
-    const payments = paymentsRes.items || [];
-    
-    // Fetch recent settlements
-    const settlementsRes = await razorpay.settlements.all({
-      count: 10
-    });
-    const settlements = settlementsRes.items || [];
-    
-    let todayGross = 0;
-    let todayNet = 0;
-    let monthlyGross = 0;
-    let monthlyNet = 0;
-    const eventWiseRevenue: Record<string, { eventName: string, revenue: number, transactionsCount: number }> = {};
-
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-    for (const p of payments) {
-      if (p.status !== 'captured') continue;
-
-      const amount = (p.amount as number) / 100; // Gross in INR
-      // Razorpay fee is in paise. If not present, default to 0 for estimation.
-      const fee = p.fee ? (p.fee as number) / 100 : amount * 0.02; // ~2% fallback estimate
-      const netAmount = amount - fee;
-
-      const createdAt = new Date((p.created_at as number) * 1000);
-
-      monthlyGross += amount;
-      monthlyNet += netAmount;
-      if (createdAt >= startOfToday) {
-        todayGross += amount;
-        todayNet += netAmount;
-      }
-
-      // Group by the formName we passed in notes
-      const formName = p.notes?.formName || "Unknown Form/Event";
-      
-      if (!eventWiseRevenue[formName]) {
-        eventWiseRevenue[formName] = { eventName: formName as string, revenue: 0, transactionsCount: 0 };
-      }
-      eventWiseRevenue[formName].revenue += amount; // We'll show gross in the event breakdown for simplicity
-      eventWiseRevenue[formName].transactionsCount += 1;
-    }
-
-    const pastSettlements = settlements.map(s => ({
-      id: s.id,
-      amount: (s.amount as number) / 100,
-      fees: (s.fees as number) / 100,
-      tax: (s.tax as number) / 100,
-      status: s.status,
-      utr: s.utr,
-      createdAt: new Date((s.created_at as number) * 1000).toISOString()
-    }));
-
+    // Razorpay has been removed. Returning empty accounts data.
     return {
       success: true,
-      todayGross,
-      todayNet,
-      monthlyGross,
-      monthlyNet,
-      eventWise: Object.values(eventWiseRevenue).sort((a, b) => b.revenue - a.revenue),
-      pastSettlements
+      todayGross: 0,
+      todayNet: 0,
+      monthlyGross: 0,
+      monthlyNet: 0,
+      eventWise: [],
+      pastSettlements: []
     };
   } catch (error) {
-    console.error("Failed to get accounts data from Razorpay:", error);
-    return { success: false, error: "Failed to fetch data from Razorpay" };
+    console.error("Failed to get accounts data:", error);
+    return { success: false, error: "Failed to fetch accounts data" };
   }
 }
 

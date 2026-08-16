@@ -81,125 +81,26 @@ export default function AccountsPage() {
             <p className="text-gray-400 text-sm mt-1">Track your earnings and transaction data across all events and forms.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-            {/* Today's Revenue Card */}
-            <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/5 border border-green-500/20 rounded-3xl p-6 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-150"></div>
-              <h3 className="text-green-400 font-bold uppercase tracking-wider text-sm mb-2">Today's Transactions</h3>
-              <div className="flex items-end gap-2 mb-2">
-                <span className="text-4xl sm:text-5xl font-black text-white">₹{data?.todayGross.toLocaleString('en-IN', { maximumFractionDigits: 2 }) || 0}</span>
-                <span className="text-gray-400 font-medium mb-1">Gross</span>
-              </div>
-              <div className="text-sm font-semibold text-emerald-300 bg-emerald-500/10 inline-block px-3 py-1 rounded-lg">
-                ~ ₹{data?.todayNet.toLocaleString('en-IN', { maximumFractionDigits: 2 }) || 0} Estimated Settlement
-              </div>
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 sm:p-12 shadow-2xl relative overflow-hidden text-center max-w-2xl mx-auto mt-12">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-500 to-orange-500"></div>
+            
+            <div className="w-20 h-20 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-10 h-10 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </div>
-
-            {/* Monthly Revenue Card */}
-            <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/5 border border-blue-500/20 rounded-3xl p-6 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-150"></div>
-              <h3 className="text-blue-400 font-bold uppercase tracking-wider text-sm mb-2">Monthly Transactions</h3>
-              <div className="flex items-end gap-2 mb-2">
-                <span className="text-4xl sm:text-5xl font-black text-white">₹{data?.monthlyGross.toLocaleString('en-IN', { maximumFractionDigits: 2 }) || 0}</span>
-                <span className="text-gray-400 font-medium mb-1">Gross</span>
-              </div>
-              <div className="text-sm font-semibold text-indigo-300 bg-indigo-500/10 inline-block px-3 py-1 rounded-lg">
-                ~ ₹{data?.monthlyNet.toLocaleString('en-IN', { maximumFractionDigits: 2 }) || 0} Estimated Settlement
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-blue-500"></div>
             
-            <h2 className="text-2xl font-bold text-white mb-6">Revenue by Event / Form</h2>
+            <h2 className="text-2xl font-bold text-white mb-4">Manual Payment Tracking Enabled</h2>
+            <p className="text-gray-400 mb-6 leading-relaxed">
+              Automated Razorpay tracking has been disabled for this workspace. You are currently using Manual QR Payments. 
+              To track your revenue, please refer to the "Responses" section in the Manage Forms tab and manually verify payments.
+            </p>
             
-            {(!data?.eventWise || data.eventWise.length === 0) ? (
-              <div className="text-gray-400 py-10 text-center bg-black/20 rounded-2xl border border-white/5">
-                No revenue data available yet.
-              </div>
-            ) : (
-              <div className="overflow-x-auto custom-scrollbar">
-                <table className="w-full text-left text-sm text-gray-300">
-                  <thead className="bg-black/40 text-gray-400 uppercase font-semibold text-xs rounded-xl">
-                    <tr>
-                      <th className="px-6 py-4 rounded-l-xl">Source</th>
-                      <th className="px-6 py-4 text-center">Total Transactions</th>
-                      <th className="px-6 py-4 text-right rounded-r-xl">Total Revenue Generated</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.eventWise.map((item, idx) => (
-                      <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                        <td className="px-6 py-5 whitespace-nowrap">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold">
-                              {item.eventName.charAt(0).toUpperCase()}
-                            </div>
-                            <span className="text-white font-semibold text-base">{item.eventName}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-5 text-center text-gray-400 font-medium text-base">
-                          {item.transactionsCount}
-                        </td>
-                        <td className="px-6 py-5 text-right font-bold text-emerald-400 text-lg">
-                          ₹{item.revenue.toLocaleString('en-IN')}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden mt-8">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-pink-500"></div>
-            
-            <h2 className="text-2xl font-bold text-white mb-6">Past Settlements</h2>
-            
-            {(!data?.pastSettlements || data.pastSettlements.length === 0) ? (
-              <div className="text-gray-400 py-10 text-center bg-black/20 rounded-2xl border border-white/5">
-                No past settlements found in Razorpay.
-              </div>
-            ) : (
-              <div className="overflow-x-auto custom-scrollbar">
-                <table className="w-full text-left text-sm text-gray-300">
-                  <thead className="bg-black/40 text-gray-400 uppercase font-semibold text-xs rounded-xl">
-                    <tr>
-                      <th className="px-6 py-4 rounded-l-xl">Date</th>
-                      <th className="px-6 py-4">Status</th>
-                      <th className="px-6 py-4">UTR Number</th>
-                      <th className="px-6 py-4 text-right">Deducted Fees</th>
-                      <th className="px-6 py-4 text-right rounded-r-xl">Settled Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.pastSettlements.map((item, idx) => (
-                      <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                        <td className="px-6 py-5 whitespace-nowrap text-white font-medium">
-                          {new Date(item.createdAt).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </td>
-                        <td className="px-6 py-5">
-                          <span className={`px-3 py-1 rounded-lg text-xs font-bold uppercase ${item.status === 'processed' ? 'bg-green-500/20 text-green-400' : item.status === 'failed' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
-                            {item.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-5 text-gray-400 font-mono text-xs">
-                          {item.utr || 'Pending'}
-                        </td>
-                        <td className="px-6 py-5 text-right text-red-400 font-semibold">
-                          -₹{item.fees.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                        </td>
-                        <td className="px-6 py-5 text-right font-bold text-white text-lg">
-                          ₹{item.amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <button
+              onClick={() => router.push('/manage-forms')}
+              className="bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-3 px-8 rounded-xl transition-colors inline-flex items-center gap-2"
+            >
+              Go to Manage Forms
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+            </button>
           </div>
 
         </div>

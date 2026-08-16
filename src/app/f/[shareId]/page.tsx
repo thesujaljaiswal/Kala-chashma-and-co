@@ -10,21 +10,9 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
   const [isLoading, setIsLoading] = useState(true);
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-
-  useEffect(() => {
-    // Dynamically load Razorpay checkout script
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.async = true;
-    document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
   const [errorField, setErrorField] = useState<string | null>(null);
   const [showUndertakingModal, setShowUndertakingModal] = useState(false);
   const [currentUndertakingField, setCurrentUndertakingField] = useState<string | null>(null);
@@ -64,6 +52,13 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
 
     setIsSubmitting(true);
 
+    if (form.isPaymentEnabled && form.paymentAmount > 0 && !paymentConfirmed) {
+      setErrorMsg("Please confirm that you have made the payment by checking the box.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
     const responsesArray = Object.keys(responses).map(label => ({
       label,
       value: responses[label]
@@ -71,87 +66,11 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
 
     if (form.isPaymentEnabled && form.paymentAmount > 0) {
       const result = await submitFormResponse(form._id, responsesArray, 'pending');
+      setIsSubmitting(false);
       if (result.success) {
-        try {
-          const res = await fetch('/api/payment/initiate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              formResponseId: result.responseId,
-              amount: form.paymentAmount,
-              formName: form.name
-            })
-          });
-          const data = await res.json();
-          if (data.success && data.order_id) {
-            
-            const options = {
-              key: data.key_id, 
-              amount: data.amount,
-              currency: data.currency,
-              name: "Kala Chashma and Co.",
-              description: form.name,
-              order_id: data.order_id,
-              handler: async function (response: any) {
-                setIsSubmitting(true);
-                setIsVerifyingPayment(true);
-                // Verify payment on our backend
-                try {
-                  const verifyRes = await fetch('/api/payment/callback', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      razorpay_payment_id: response.razorpay_payment_id,
-                      razorpay_order_id: response.razorpay_order_id,
-                      razorpay_signature: response.razorpay_signature,
-                      formResponseId: result.responseId
-                    })
-                  });
-                  const verifyData = await verifyRes.json();
-                  if (verifyData.success) {
-                    setIsSuccess(true);
-                    setIsVerifyingPayment(false);
-                  } else {
-                    setErrorMsg("Payment verification failed. Please contact support.");
-                    setIsSubmitting(false);
-                    setIsVerifyingPayment(false);
-                  }
-                } catch (e) {
-                  setErrorMsg("Error during payment verification.");
-                  setIsSubmitting(false);
-                  setIsVerifyingPayment(false);
-                }
-              },
-              prefill: {
-                name: responses["Name"] || responses["Full Name"] || "",
-                email: responses["Email"] || "",
-                contact: responses["Phone Number"] || responses["Phone"] || ""
-              },
-              theme: {
-                color: "#1E4E8C"
-              }
-            };
-            
-            const rzp = new (window as any).Razorpay(options);
-            
-            rzp.on('payment.failed', function (response: any) {
-               setErrorMsg(response.error.description || "Payment failed.");
-            });
-            
-            rzp.open();
-            
-            setIsSubmitting(false); // Modal handles the rest
-          } else {
-            setErrorMsg("Payment initiation failed. Please try again.");
-            setIsSubmitting(false);
-          }
-        } catch (err) {
-          setErrorMsg("Payment setup error. Please contact support.");
-          setIsSubmitting(false);
-        }
+        setIsSuccess(true);
       } else {
-        setErrorMsg("Something went wrong saving your response.");
-        setIsSubmitting(false);
+        setErrorMsg("Something went wrong saving your response. Please try again.");
       }
     } else {
       const result = await submitFormResponse(form._id, responsesArray);
@@ -179,22 +98,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
     );
   }
 
-  if (isVerifyingPayment) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-[#FAF9F6]">
-        <div className="flex flex-col items-center gap-6 bg-white/80 backdrop-blur-xl p-10 rounded-3xl shadow-xl border border-gray-100 max-w-sm w-full">
-          <div className="relative w-20 h-20">
-            <div className="absolute inset-0 border-4 border-[#1E4E8C]/20 rounded-full"></div>
-            <div className="absolute inset-0 border-4 border-[#E86A28] rounded-full border-t-transparent animate-spin"></div>
-          </div>
-          <div className="text-center">
-            <h3 className="text-2xl font-black text-gray-900 mb-2">Verifying Payment</h3>
-            <p className="text-gray-500 font-medium text-sm leading-relaxed">Please wait securely while we process your transaction...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+
 
   if (!form) {
     return (
@@ -261,7 +165,11 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
               <svg className="w-12 h-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
             </div>
             <h2 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Response Submitted</h2>
-            <p className="text-gray-600 font-medium">Thank you! Your response has been recorded.</p>
+            <p className="text-gray-600 font-medium leading-relaxed">
+              Thank you! Your response has been recorded.
+              {form.isPaymentEnabled && form.paymentAmount > 0 && <br/>}
+              {form.isPaymentEnabled && form.paymentAmount > 0 && <span className="text-[#1E4E8C] font-bold mt-2 block">Your ticket will be sent to your email once the payment is verified by our team.</span>}
+            </p>
           </motion.div>
         ) : (
           <>
@@ -408,10 +316,53 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
                 </div>
               ))}
 
+              {form.isPaymentEnabled && form.paymentAmount > 0 && (
+                <div className="bg-white/50 p-6 rounded-2xl border border-gray-200 text-center space-y-4 shadow-sm mt-4">
+                  <h3 className="text-xl font-bold text-gray-900">Payment Required</h3>
+                  <p className="text-gray-600 text-sm">Please pay <span className="font-bold text-black">₹{form.paymentAmount}</span> using the QR code below.</p>
+                  
+                  <div className="w-48 h-48 mx-auto bg-white rounded-2xl shadow-sm border border-gray-200 p-2 overflow-hidden flex items-center justify-center">
+                    <img src="/payment QR.jpeg" alt="Payment QR Code" className="w-full h-full object-cover rounded-xl" />
+                  </div>
+                  
+                  <div className="flex flex-col gap-3 justify-center items-center mt-4 w-full max-w-sm mx-auto">
+                    <a 
+                      href={`upi://pay?pa=musabansariofficia1212005@oksbi&pn=Kala%20Chashma%20and%20Co&am=${form.paymentAmount}&cu=INR`}
+                      className="flex items-center justify-center gap-2 px-6 py-3.5 bg-[#1E4E8C]/5 hover:bg-[#1E4E8C]/15 text-[#1E4E8C] border border-[#1E4E8C]/20 font-bold rounded-xl transition-colors w-full"
+                    >
+                      <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 8h6m-5 0a3 3 0 110 6H9l3 3m-3-6h6m6 1a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      <span>Pay Now via UPI App</span>
+                    </a>
+                    
+                    <a 
+                      href={`https://wa.me/+918591250180?text=Hi,%20I%20am%20sharing%20the%20screenshot%20of%20my%20payment%20for%20${encodeURIComponent(form.name)}.`}
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 px-6 py-3.5 bg-green-500/5 hover:bg-green-500/15 text-green-700 border border-green-500/20 font-bold rounded-xl transition-colors w-full"
+                    >
+                      <svg className="w-6 h-6 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.711.927 2.876.928 3.181 0 5.767-2.586 5.768-5.766 0-3.181-2.586-5.767-5.768-5.767zm3.176 8.358c-.149.336-.884.629-1.229.658-.335.034-.693.076-2.128-.501-1.636-.66-2.73-2.308-2.825-2.435-.084-.118-.685-.898-.685-1.715 0-.817.433-1.218.577-1.378.154-.173.346-.201.451-.201.115 0 .221.002.316.002.106.002.241-.034.375.293.135.316.471 1.127.509 1.205.039.076.067.172.01.287-.048.115-.077.192-.144.279-.076.085-.154.192-.221.258-.067.076-.144.153-.058.297.086.153.375.62.808.991.558.482 1.01.629 1.154.717.144.076.231.066.327-.039.086-.095.384-.461.49-.62.096-.163.202-.124.336-.076.135.048.865.404 1.019.481.154.077.25.115.288.182.048.067.048.394-.106.721z"/></svg>
+                      <span>Share Screenshot on WhatsApp</span>
+                    </a>
+                  </div>
+
+                  <div className="pt-2">
+                    <label className="inline-flex items-center gap-3 cursor-pointer p-3 bg-white/60 rounded-xl border border-gray-200 hover:bg-white transition-colors">
+                      <input 
+                        type="checkbox" 
+                        checked={paymentConfirmed} 
+                        onChange={(e) => setPaymentConfirmed(e.target.checked)} 
+                        className="w-5 h-5 rounded text-[#1E4E8C] border-gray-300 focus:ring-[#1E4E8C] cursor-pointer"
+                      />
+                      <span className="font-bold text-gray-800">I have paid via QR code and shared through whatsapp</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+
               <button
                 type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-gradient-to-r from-[#1E4E8C] to-[#0A2A5C] hover:from-[#153A6E] hover:to-[#071D40] text-white font-bold py-4 px-6 rounded-2xl shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:hover:scale-100 flex items-center justify-center gap-2 text-lg mt-8"
+                disabled={isSubmitting || (form.isPaymentEnabled && form.paymentAmount > 0 && !paymentConfirmed)}
+                className="w-full bg-gradient-to-r from-[#1E4E8C] to-[#0A2A5C] hover:from-[#153A6E] hover:to-[#071D40] text-white font-bold py-4 px-6 rounded-2xl shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:hover:scale-100 flex items-center justify-center gap-2 text-lg mt-8 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (
                   <>
@@ -419,7 +370,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
                     Processing...
                   </>
                 ) : (
-                  form.isPaymentEnabled && form.paymentAmount > 0 ? `Pay ₹${form.paymentAmount} & Submit` : "Submit Response"
+                  form.isPaymentEnabled && form.paymentAmount > 0 ? `Submit` : "Submit Response"
                 )}
               </button>
 
