@@ -230,7 +230,7 @@ export async function processEmailTicket(formResponseId: string) {
         const mailOptions = {
           from: `"${form.name}" <${process.env.GMAIL_USER}>`,
           to: userEmail,
-          subject: `Your Pass for ${form.name}`,
+          subject: `${form.name} - Registration Ticket [${ticketId}]`,
           priority: 'high' as const,
           attachments: [{
             filename: 'qrcode.png',
