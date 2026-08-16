@@ -36,6 +36,7 @@ export default function ManageFormsPage() {
   const [isLoadingResponses, setIsLoadingResponses] = useState(false);
   const [selectedPaymentDetails, setSelectedPaymentDetails] = useState<any>(null);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -289,17 +290,19 @@ export default function ManageFormsPage() {
                       </button>
                     </div>
                     
-                    <div className="flex gap-2 mt-2 pt-2 border-t border-white/5">
+                    <div className="flex gap-3 mt-4 pt-4 border-t border-white/10">
                       <button
                         onClick={() => handleOpenBuilder(form)}
-                        className="flex-1 text-gray-400 hover:text-yellow-400 text-xs font-semibold py-1.5 transition-colors"
+                        className="flex-1 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/5 text-sm font-semibold py-2 px-3 rounded-xl transition-colors flex items-center justify-center gap-1.5"
                       >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                         Edit
                       </button>
                       <button
                         onClick={() => handleDeleteForm(form._id, form.name)}
-                        className="flex-1 text-gray-400 hover:text-red-400 text-xs font-semibold py-1.5 transition-colors"
+                        className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 text-sm font-semibold py-2 px-3 rounded-xl transition-colors flex items-center justify-center gap-1.5"
                       >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         Delete
                       </button>
                     </div>
@@ -351,7 +354,16 @@ export default function ManageFormsPage() {
                           {viewResponsesFor.fields.map((f: any, i: number) => {
                             const answer = res.responses.find((r: any) => (f.id && r.fieldId === f.id) || r.label === f.label)?.value || "-";
                             return (
-                              <td key={i} className="px-4 py-4 text-white font-medium">{answer}</td>
+                              <td key={i} className="px-4 py-4 text-white font-medium">
+                                {answer.startsWith('http') ? (
+                                  <button onClick={() => setPreviewImage(answer)} className="text-blue-400 hover:text-blue-300 underline font-semibold transition-colors flex items-center gap-1">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                    View Image
+                                  </button>
+                                ) : (
+                                  answer
+                                )}
+                              </td>
                             );
                           })}
                           {viewResponsesFor.isPaymentEnabled && (
@@ -486,6 +498,7 @@ export default function ManageFormsPage() {
                               <option value="radio" className="bg-gray-800">Radio Buttons</option>
                               <option value="checkbox" className="bg-gray-800">Checkboxes</option>
                               <option value="undertaking" className="bg-gray-800">Undertaking Form</option>
+                              <option value="file" className="bg-gray-800">File Upload (Image)</option>
                             </select>
                           </div>
                           
@@ -758,6 +771,39 @@ export default function ManageFormsPage() {
                 >
                   Close
                 </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {previewImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+            onClick={() => setPreviewImage(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative max-w-4xl max-h-[90vh] w-full rounded-2xl overflow-hidden shadow-2xl flex flex-col bg-black/90 border border-white/10"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center p-4 border-b border-white/10 bg-black/50">
+                <h3 className="text-white font-bold text-lg">Image Preview</h3>
+                <button
+                  onClick={() => setPreviewImage(null)}
+                  className="text-gray-400 hover:text-white transition-colors bg-white/10 hover:bg-white/20 p-2 rounded-full"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+              </div>
+              <div className="p-4 flex-1 flex items-center justify-center overflow-auto">
+                <img src={previewImage} alt="Preview" className="max-w-full max-h-[75vh] object-contain rounded-xl" />
               </div>
             </motion.div>
           </motion.div>

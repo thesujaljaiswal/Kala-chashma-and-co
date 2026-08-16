@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, use } from "react";
-import { getFormByShareId, submitFormResponse } from "@/app/actions";
+import { getFormByShareId, submitFormResponse, uploadImageToCloudinary } from "@/app/actions";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function PublicFormPage({ params }: { params: Promise<{ shareId: string }> }) {
@@ -59,13 +59,32 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
 
     setIsSubmitting(true);
 
-    const responsesArray = form.fields.map((field: any) => ({
-      fieldId: field.id || field._id?.toString() || undefined,
-      label: field.label,
-      value: responses[field.label]
-    })).filter((r: any) => r.value !== undefined);
+    try {
+      const responsesArray = [];
+      for (const field of form.fields) {
+        let value = responses[field.label];
+        
+        if (field.type === 'file' && value && value.startsWith('data:image')) {
+          const uploadResult = await uploadImageToCloudinary(value);
+          if (uploadResult.success) {
+            value = uploadResult.url as string;
+          } else {
+            setErrorMsg(`Failed to upload file for ${field.label}. Please try again.`);
+            setIsSubmitting(false);
+            return;
+          }
+        }
+        
+        if (value !== undefined) {
+          responsesArray.push({
+            fieldId: field.id || field._id?.toString() || undefined,
+            label: field.label,
+            value: value
+          });
+        }
+      }
 
-    if (form.isPaymentEnabled && form.paymentAmount > 0) {
+      if (form.isPaymentEnabled && form.paymentAmount > 0) {
       const result = await submitFormResponse(form._id, responsesArray, 'pending');
       setIsSubmitting(false);
       if (result.success) {
@@ -81,6 +100,11 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
       } else {
         setErrorMsg("Something went wrong. Please try again.");
       }
+    }
+    } catch (err) {
+      console.error(err);
+      setErrorMsg("An unexpected error occurred.");
+      setIsSubmitting(false);
     }
   };
 
@@ -301,6 +325,35 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                           Click here to Review and Accept Undertaking
                         </button>
+                      )}
+                    </div>
+                  ) : field.type === 'file' ? (
+                    <div className="bg-white/50 p-5 rounded-2xl border border-gray-200">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        required={field.required}
+                        disabled={isSubmitting}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setResponses({ ...responses, [field.label]: reader.result as string });
+                            };
+                            reader.readAsDataURL(file);
+                          } else {
+                            const newResponses = { ...responses };
+                            delete newResponses[field.label];
+                            setResponses(newResponses);
+                          }
+                        }}
+                        className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-[#1E4E8C]/10 file:text-[#1E4E8C] hover:file:bg-[#1E4E8C]/20 transition-all cursor-pointer"
+                      />
+                      {responses[field.label] && responses[field.label].startsWith('data:image') && (
+                        <div className="mt-4 rounded-xl overflow-hidden border border-gray-200 w-32 h-32 relative shadow-sm">
+                          <img src={responses[field.label]} alt="Preview" className="w-full h-full object-cover" />
+                        </div>
                       )}
                     </div>
                   ) : (

@@ -10,6 +10,25 @@ import crypto from "crypto";
 import Razorpay from "razorpay";
 import nodemailer from "nodemailer";
 import QRCode from "qrcode";
+import { v2 as cloudinary } from "cloudinary";
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+export async function uploadImageToCloudinary(base64Image: string) {
+  try {
+    const result = await cloudinary.uploader.upload(base64Image, {
+      folder: "station-app-forms",
+    });
+    return { success: true, url: result.secure_url };
+  } catch (error) {
+    console.error("Cloudinary upload error:", error);
+    return { success: false, error: "Failed to upload image" };
+  }
+}
 
 // Helper to generate a random 24 char hex string for the share URL
 function generateShareId() {

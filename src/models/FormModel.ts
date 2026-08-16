@@ -3,7 +3,7 @@ import mongoose, { Document, Model } from "mongoose";
 export interface IFormField {
   id?: string;
   label: string;
-  type: "text" | "dropdown" | "radio" | "checkbox" | "number" | "email" | "undertaking";
+  type: "text" | "dropdown" | "radio" | "checkbox" | "number" | "email" | "undertaking" | "file";
   options?: string[]; // for dropdown, radio, checkbox
   required: boolean;
 }
@@ -25,7 +25,7 @@ export interface IForm extends Document {
 const FormFieldSchema = new mongoose.Schema({
   id: { type: String },
   label: { type: String, required: true },
-  type: { type: String, enum: ["text", "dropdown", "radio", "checkbox", "number", "email", "undertaking"], required: true },
+  type: { type: String, enum: ["text", "dropdown", "radio", "checkbox", "number", "email", "undertaking", "file"], required: true },
   options: { type: [String], default: [] },
   required: { type: Boolean, default: false }
 });
