@@ -89,7 +89,12 @@ export default function ManageFormsPage() {
       setEditingForm(form);
       setFormName(form.name);
       setFormDescription(form.description || "");
-      setCustomFields(form.fields || []);
+      const fieldsWithIds = (form.fields || []).map((f: any) => ({
+        ...f,
+        id: f.id || crypto.randomUUID(),
+        originalLabel: f.label
+      }));
+      setCustomFields(fieldsWithIds);
       setIsRegistrationForm(form.isRegistrationForm || false);
       setRegistrationEventId(form.registrationEventId || "");
       setIsPaymentEnabled(form.isPaymentEnabled || false);
@@ -110,7 +115,7 @@ export default function ManageFormsPage() {
   };
 
   const addCustomField = () => {
-    setCustomFields([...customFields, { label: "", type: "text", options: [], required: false }]);
+    setCustomFields([...customFields, { id: crypto.randomUUID(), label: "", type: "text", options: [], required: false }]);
   };
 
   const handleTypeChange = (index: number, newType: string) => {
@@ -344,7 +349,7 @@ export default function ManageFormsPage() {
                         <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                           <td className="px-4 py-4 whitespace-nowrap text-gray-500">{formatDate(res.createdAt)}</td>
                           {viewResponsesFor.fields.map((f: any, i: number) => {
-                            const answer = res.responses.find((r: any) => r.label === f.label)?.value || "-";
+                            const answer = res.responses.find((r: any) => (f.id && r.fieldId === f.id) || r.label === f.label)?.value || "-";
                             return (
                               <td key={i} className="px-4 py-4 text-white font-medium">{answer}</td>
                             );

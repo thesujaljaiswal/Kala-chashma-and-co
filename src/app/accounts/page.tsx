@@ -81,26 +81,60 @@ export default function AccountsPage() {
             <p className="text-gray-400 text-sm mt-1">Track your earnings and transaction data across all events and forms.</p>
           </div>
 
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 sm:p-12 shadow-2xl relative overflow-hidden text-center max-w-2xl mx-auto mt-12">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-500 to-orange-500"></div>
-            
-            <div className="w-20 h-20 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="w-10 h-10 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-6 sm:p-8 relative overflow-hidden group">
+              <div className="absolute top-0 left-0 w-full h-1 bg-green-500"></div>
+              <p className="text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">Today's Revenue</p>
+              <h2 className="text-4xl font-black text-white">₹{data?.todayNet || 0}</h2>
+              <p className="text-green-400 text-sm mt-2 font-medium">From verified registrations today</p>
             </div>
             
-            <h2 className="text-2xl font-bold text-white mb-4">Manual Payment Tracking Enabled</h2>
-            <p className="text-gray-400 mb-6 leading-relaxed">
-              Automated Razorpay tracking has been disabled for this workspace. You are currently using Manual QR Payments. 
-              To track your revenue, please refer to the "Responses" section in the Manage Forms tab and manually verify payments.
-            </p>
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-6 sm:p-8 relative overflow-hidden group">
+              <div className="absolute top-0 left-0 w-full h-1 bg-blue-500"></div>
+              <p className="text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">This Month's Revenue</p>
+              <h2 className="text-4xl font-black text-white">₹{data?.monthlyNet || 0}</h2>
+              <p className="text-blue-400 text-sm mt-2 font-medium">Total verified this month</p>
+            </div>
+          </div>
+
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
+            <div className="p-6 sm:p-8 border-b border-white/10">
+              <h2 className="text-2xl font-bold text-white">Event-wise Breakdown</h2>
+              <p className="text-gray-400 text-sm mt-1">Revenue from verified users per event/form</p>
+            </div>
             
-            <button
-              onClick={() => router.push('/manage-forms')}
-              className="bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-3 px-8 rounded-xl transition-colors inline-flex items-center gap-2"
-            >
-              Go to Manage Forms
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-            </button>
+            {(!data?.eventWise || data.eventWise.length === 0) ? (
+              <div className="p-12 text-center text-gray-500 font-medium">
+                No verified payments found yet.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-gray-300">
+                  <thead className="bg-black/40 text-gray-400 uppercase font-semibold text-xs">
+                    <tr>
+                      <th className="px-6 py-4">Event / Form Name</th>
+                      <th className="px-6 py-4 text-center">Verified Users</th>
+                      <th className="px-6 py-4 text-right">Net Revenue</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {data.eventWise.map((ev, idx) => (
+                      <tr key={idx} className="hover:bg-white/5 transition-colors">
+                        <td className="px-6 py-4 font-bold text-white">{ev.eventName}</td>
+                        <td className="px-6 py-4 text-center">
+                          <span className="bg-blue-500/20 text-blue-400 py-1 px-3 rounded-xl font-bold">
+                            {ev.transactionsCount}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right font-bold text-green-400">
+                          ₹{ev.revenue}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
         </div>

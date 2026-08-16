@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
-export default function AdminSidebar({ activeTab, title }: { activeTab: "manage" | "stations" | "onboarding" | "checkin" | "attendance" | "forms" | "analytics" | "accounts", title: string }) {
+export default function AdminSidebar({ activeTab, title }: { activeTab: "manage" | "stations" | "onboarding" | "checkin" | "attendance" | "forms" | "analytics" | "accounts" | "expense-tracker", title: string }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
@@ -17,14 +17,14 @@ export default function AdminSidebar({ activeTab, title }: { activeTab: "manage"
       {/* Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 border-r border-white/10 transform transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex flex-col h-full p-4">
-          <div className="flex items-center justify-between mb-8 mt-2 md:justify-center">
+          <div className="flex items-center justify-between mb-8 mt-2 md:justify-center shrink-0">
             <h1 className="text-xl font-extrabold text-white text-center drop-shadow-md">Admin Panel</h1>
             <button className="md:hidden text-gray-400 hover:text-white" onClick={() => setIsSidebarOpen(false)}>
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
           </div>
           
-          <nav className="flex-1 flex flex-col gap-3">
+          <nav className="flex-1 flex flex-col gap-3 overflow-y-auto pr-1 custom-scrollbar">
             <Link
               href="/manage-events"
               onClick={() => setIsSidebarOpen(false)}
@@ -83,7 +83,7 @@ export default function AdminSidebar({ activeTab, title }: { activeTab: "manage"
               }`}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-              Standalone Forms
+              Forms
             </Link>
             <Link
               href="/form-analytics"
@@ -104,6 +104,16 @@ export default function AdminSidebar({ activeTab, title }: { activeTab: "manage"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
               Accounts
+            </Link>
+            <Link
+              href="/expense-tracker"
+              onClick={() => setIsSidebarOpen(false)}
+              className={`w-full text-left px-4 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center gap-3 ${
+                activeTab === "expense-tracker" ? "bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-lg" : "text-gray-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>
+              Expense Tracker
             </Link>
           </nav>
         </div>

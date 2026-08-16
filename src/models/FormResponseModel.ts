@@ -1,6 +1,7 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
 
 export interface IResponseField {
+  fieldId?: string;
   label: string;
   value: string;
 }
@@ -17,6 +18,7 @@ export interface IFormResponse extends Document {
 }
 
 const ResponseFieldSchema = new mongoose.Schema({
+  fieldId: { type: String },
   label: { type: String, required: true },
   value: { type: String, required: true }
 });

@@ -5,6 +5,7 @@ import Selection from "@/models/Selection";
 import EventModel from "@/models/EventModel";
 import { FormModel } from "@/models/FormModel";
 import { FormResponseModel } from "@/models/FormResponseModel";
+import ExpenseModel from "@/models/ExpenseModel";
 import crypto from "crypto";
 import Razorpay from "razorpay";
 import nodemailer from "nodemailer";
@@ -117,6 +118,26 @@ export async function createForm(name: string, description: string, fields: any[
 export async function updateForm(id: string, name: string, description: string, fields: any[], isRegistrationForm: boolean = false, registrationEventId: string | null = null, isPaymentEnabled: boolean = false, paymentAmount: number = 0, isEmailTicketEnabled: boolean = false) {
   try {
     await dbConnect();
+    
+    // Migrate old responses when labels change or fieldIds are missing
+    for (const field of fields) {
+      if (field.id) {
+        if (field.originalLabel && field.originalLabel !== field.label) {
+          // Label was changed! Update past responses that used the old label.
+          await FormResponseModel.updateMany(
+            { formId: id, "responses.label": field.originalLabel },
+            { $set: { "responses.$.label": field.label, "responses.$.fieldId": field.id } }
+          );
+        } else if (field.originalLabel === field.label) {
+          // Label didn't change, but we should backfill fieldId for old responses just in case
+          await FormResponseModel.updateMany(
+            { formId: id, "responses.label": field.originalLabel, "responses.fieldId": { $exists: false } },
+            { $set: { "responses.$.fieldId": field.id } }
+          );
+        }
+      }
+    }
+
     await FormModel.findByIdAndUpdate(id, { name, description, fields, isRegistrationForm, registrationEventId: registrationEventId ?? undefined, isPaymentEnabled, paymentAmount, isEmailTicketEnabled });
     return { success: true };
   } catch (error) {
@@ -137,7 +158,7 @@ export async function deleteForm(id: string) {
   }
 }
 
-export async function submitFormResponse(formId: string, responses: { label: string; value: string }[], paymentStatus?: 'pending' | 'success' | 'failed' | 'not_required', transactionId?: string) {
+export async function submitFormResponse(formId: string, responses: { fieldId?: string; label: string; value: string }[], paymentStatus?: 'pending' | 'success' | 'failed' | 'not_required', transactionId?: string) {
   try {
     await dbConnect();
     const response = await FormResponseModel.create({ formId, responses, paymentStatus, transactionId });
@@ -477,14 +498,62 @@ export async function verifyFormPayment(responseId: string) {
 
 export async function getAccountsData() {
   try {
-    // Razorpay has been removed. Returning empty accounts data.
+    await dbConnect();
+
+    const verifiedResponses = await FormResponseModel.find({ paymentStatus: 'success' }).lean();
+    const forms = await FormModel.find().lean();
+    const EventModel = (await import("@/models/EventModel")).default;
+    const events = await EventModel.find().lean();
+
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    let todayRevenue = 0;
+    let monthlyRevenue = 0;
+
+    const eventWiseMap = new Map<string, { eventName: string; revenue: number; expenses: number; transactionsCount: number; eventId?: string }>();
+
+    for (const response of verifiedResponses) {
+      const form = forms.find(f => f._id.toString() === response.formId.toString());
+      if (!form || !form.isPaymentEnabled || (form.paymentAmount || 0) <= 0) continue;
+
+      const amount = form.paymentAmount || 0;
+      const responseDate = new Date(response.createdAt);
+
+      if (responseDate >= startOfToday) {
+        todayRevenue += amount;
+      }
+      if (responseDate >= startOfMonth) {
+        monthlyRevenue += amount;
+      }
+
+      let groupName = form.name;
+      let eventId = undefined;
+      if (form.registrationEventId) {
+        const event = events.find((e: any) => e._id.toString() === form.registrationEventId);
+        if (event) {
+          groupName = event.name;
+          eventId = event._id.toString();
+        }
+      }
+
+      if (!eventWiseMap.has(groupName)) {
+        eventWiseMap.set(groupName, { eventName: groupName, revenue: 0, expenses: 0, transactionsCount: 0, eventId });
+      }
+      
+      const groupData = eventWiseMap.get(groupName)!;
+      groupData.revenue += amount;
+      groupData.transactionsCount += 1;
+    }
+
     return {
       success: true,
-      todayGross: 0,
-      todayNet: 0,
-      monthlyGross: 0,
-      monthlyNet: 0,
-      eventWise: [],
+      todayGross: todayRevenue,
+      todayNet: todayRevenue,
+      monthlyGross: monthlyRevenue,
+      monthlyNet: monthlyRevenue,
+      eventWise: Array.from(eventWiseMap.values()).sort((a, b) => b.revenue - a.revenue),
       pastSettlements: []
     };
   } catch (error) {
@@ -500,7 +569,7 @@ export async function getAttendanceList(eventId: string) {
     if (!forms || forms.length === 0) return [];
 
     const formIds = forms.map(f => f._id);
-    const responses = await FormResponseModel.find({ formId: { $in: formIds } });
+    const responses = await FormResponseModel.find({ formId: { $in: formIds }, paymentStatus: 'success' });
     
     const attendanceList = responses.map(response => {
       const form = forms.find(f => f._id.toString() === response.formId.toString());
@@ -581,3 +650,87 @@ export async function toggleAttendanceStatus(ticketId: string, eventId: string, 
 }
 
 
+export async function addExpense(description: string, amount: number, eventId?: string, eventName?: string) {
+  try {
+    await dbConnect();
+    await ExpenseModel.create({ description, amount, eventId, eventName });
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to add expense:", error);
+    return { success: false, error: "Failed to add expense" };
+  }
+}
+
+export async function deleteExpense(id: string) {
+  try {
+    await dbConnect();
+    await ExpenseModel.findByIdAndDelete(id);
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to delete expense:", error);
+    return { success: false, error: "Failed to delete expense" };
+  }
+}
+
+export async function getExpenseTrackerEvents() {
+  try {
+    await dbConnect();
+    const EventModel = (await import("@/models/EventModel")).default;
+    const events = await EventModel.find().sort({ createdAt: -1 }).lean();
+    return {
+      success: true,
+      events: events.map((e: any) => ({
+        id: e._id.toString(),
+        name: e.name
+      }))
+    };
+  } catch (error) {
+    console.error("Failed to fetch events for expense tracker:", error);
+    return { success: false, error: "Failed to fetch events" };
+  }
+}
+
+export async function getEventFinancials(eventId: string) {
+  try {
+    await dbConnect();
+    
+    // Get all forms for this event
+    const forms = await FormModel.find({ registrationEventId: eventId }).lean();
+    const formIds = forms.map(f => f._id.toString());
+    
+    // Get verified responses for these forms
+    const verifiedResponses = await FormResponseModel.find({ 
+      formId: { $in: formIds },
+      paymentStatus: 'success' 
+    }).lean();
+    
+    // Calculate total revenue
+    let totalRevenue = 0;
+    for (const response of verifiedResponses) {
+      const form = forms.find(f => f._id.toString() === response.formId.toString());
+      if (form && form.isPaymentEnabled && form.paymentAmount) {
+        totalRevenue += form.paymentAmount;
+      }
+    }
+    
+    // Get expenses for this event
+    const expenses = await ExpenseModel.find({ eventId }).sort({ createdAt: -1 }).lean();
+    const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+    
+    return {
+      success: true,
+      revenue: totalRevenue,
+      expensesTotal: totalExpenses,
+      netRemaining: totalRevenue - totalExpenses,
+      expensesLog: expenses.map(e => ({
+        id: e._id.toString(),
+        description: e.description,
+        amount: e.amount,
+        createdAt: e.createdAt.toISOString()
+      }))
+    };
+  } catch (error) {
+    console.error("Failed to get event financials:", error);
+    return { success: false, error: "Failed to calculate financials" };
+  }
+}

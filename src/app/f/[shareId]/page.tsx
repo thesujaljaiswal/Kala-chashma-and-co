@@ -59,10 +59,11 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
 
     setIsSubmitting(true);
 
-    const responsesArray = Object.keys(responses).map(label => ({
-      label,
-      value: responses[label]
-    }));
+    const responsesArray = form.fields.map((field: any) => ({
+      fieldId: field.id || field._id?.toString() || undefined,
+      label: field.label,
+      value: responses[field.label]
+    })).filter((r: any) => r.value !== undefined);
 
     if (form.isPaymentEnabled && form.paymentAmount > 0) {
       const result = await submitFormResponse(form._id, responsesArray, 'pending');

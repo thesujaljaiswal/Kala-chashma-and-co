@@ -1,6 +1,7 @@
 import mongoose, { Document, Model } from "mongoose";
 
 export interface IFormField {
+  id?: string;
   label: string;
   type: "text" | "dropdown" | "radio" | "checkbox" | "number" | "email" | "undertaking";
   options?: string[]; // for dropdown, radio, checkbox
@@ -22,6 +23,7 @@ export interface IForm extends Document {
 }
 
 const FormFieldSchema = new mongoose.Schema({
+  id: { type: String },
   label: { type: String, required: true },
   type: { type: String, enum: ["text", "dropdown", "radio", "checkbox", "number", "email", "undertaking"], required: true },
   options: { type: [String], default: [] },
