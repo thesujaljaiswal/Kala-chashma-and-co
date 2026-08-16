@@ -287,57 +287,6 @@ export default function Page() {
           </div>
         </section>
 
-        {/* FOUNDERS SECTION */}
-        <section className="py-20 border-t border-gray-200 relative">
-          
-          <div className="text-center mb-16 space-y-4 relative z-10">
-            <h2 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight">The Minds Behind the Madness</h2>
-            <p className="text-gray-500 text-lg font-medium">Founded by the trio who wanted more than just a regular trip.</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
-            {[
-              { name: "Harsh Goswami", image: "/harsh.png", role: "Co-Founder" },
-              { name: "Musab Ansari", image: "/musab.png", role: "Co-Founder" },
-              { name: "Riddhiman Shetty", image: "/Riddhiman.png", role: "Co-Founder" }
-            ].map((founder, i) => (
-              <div key={i} className="bg-white/80 relative overflow-hidden border border-gray-100 shadow-md rounded-[2.5rem] p-8 backdrop-blur-xl text-center transition-all duration-500 group hover:-translate-y-3 hover:shadow-[0_20px_40px_rgba(30,78,140,0.1)]">
-                
-                {/* Background Madness / Art */}
-                <div className="absolute -right-16 -top-16 w-48 h-48 bg-gradient-to-br from-[#E86A28]/20 to-transparent rounded-full blur-[40px] group-hover:bg-[#E86A28]/30 group-hover:scale-150 transition-all duration-700 pointer-events-none"></div>
-                <div className="absolute -left-16 -bottom-16 w-48 h-48 bg-gradient-to-tr from-[#1E4E8C]/20 to-transparent rounded-full blur-[40px] group-hover:bg-[#1E4E8C]/30 group-hover:scale-150 transition-all duration-700 pointer-events-none"></div>
-                
-                <div className="absolute inset-0 opacity-[0.03] pointer-events-none group-hover:opacity-[0.15] group-hover:rotate-90 group-hover:scale-125 transition-all duration-1000 ease-out text-[#1E4E8C] flex items-center justify-center">
-                  <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="0.5" className="w-[200%] h-[200%]">
-                    {[...Array(12)].map((_, j) => (
-                      <g key={j} transform={`rotate(${j * 30} 50 50)`}>
-                        <path d="M50 10 Q60 30 50 50 Q40 30 50 10" />
-                        <circle cx="50" cy="15" r="2" fill="currentColor" />
-                      </g>
-                    ))}
-                    <circle cx="50" cy="50" r="40" strokeDasharray="2 4" stroke="#E86A28" />
-                  </svg>
-                </div>
-
-                <div className="w-28 h-28 mx-auto bg-gradient-to-br from-[#1E4E8C] to-[#E86A28] rounded-full mb-6 p-1 relative z-10 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-[0_8px_20px_rgba(0,0,0,0.1)] group-hover:shadow-[0_0_30px_rgba(232,106,40,0.3)]">
-                  <div className="w-full h-full bg-white rounded-full flex items-center justify-center overflow-hidden">
-                    {founder.image ? (
-                      <img src={founder.image} alt={founder.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                    ) : (
-                      <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-[#1E4E8C] to-[#E86A28] group-hover:scale-110 transition-transform duration-500">
-                        {founder.name.charAt(0)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                
-                <h3 className="text-2xl font-black text-gray-900 relative z-10 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[#1E4E8C] group-hover:to-[#E86A28] transition-colors">{founder.name}</h3>
-                <p className="text-xs font-bold text-gray-400 mt-2 tracking-[0.2em] uppercase relative z-10 group-hover:text-[#E86A28] transition-colors">{founder.role}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
       </main>
 
       {/* FOOTER */}
