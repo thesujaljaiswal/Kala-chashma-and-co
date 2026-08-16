@@ -387,16 +387,6 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
                       <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 8h6m-5 0a3 3 0 110 6H9l3 3m-3-6h6m6 1a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                       <span>Pay Now via UPI App</span>
                     </a>
-                    
-                    <a 
-                      href={`https://wa.me/+918591250180?text=Hi,%20I%20am%20sharing%20the%20screenshot%20of%20my%20payment%20for%20${encodeURIComponent(form.name)}.`}
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 px-6 py-3.5 bg-green-500/5 hover:bg-green-500/15 text-green-700 border border-green-500/20 font-bold rounded-xl transition-colors w-full"
-                    >
-                      <svg className="w-6 h-6 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.711.927 2.876.928 3.181 0 5.767-2.586 5.768-5.766 0-3.181-2.586-5.767-5.768-5.767zm3.176 8.358c-.149.336-.884.629-1.229.658-.335.034-.693.076-2.128-.501-1.636-.66-2.73-2.308-2.825-2.435-.084-.118-.685-.898-.685-1.715 0-.817.433-1.218.577-1.378.154-.173.346-.201.451-.201.115 0 .221.002.316.002.106.002.241-.034.375.293.135.316.471 1.127.509 1.205.039.076.067.172.01.287-.048.115-.077.192-.144.279-.076.085-.154.192-.221.258-.067.076-.144.153-.058.297.086.153.375.62.808.991.558.482 1.01.629 1.154.717.144.076.231.066.327-.039.086-.095.384-.461.49-.62.096-.163.202-.124.336-.076.135.048.865.404 1.019.481.154.077.25.115.288.182.048.067.048.394-.106.721z"/></svg>
-                      <span>Share Screenshot on WhatsApp</span>
-                    </a>
                   </div>
 
                   <div className="pt-2">
@@ -407,7 +397,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
                         onChange={(e) => setPaymentConfirmed(e.target.checked)} 
                         className="w-5 h-5 rounded text-[#1E4E8C] border-gray-300 focus:ring-[#1E4E8C] cursor-pointer"
                       />
-                      <span className="font-bold text-gray-800">I have paid via QR code and shared through whatsapp</span>
+                      <span className="font-bold text-gray-800">I have successfully paid ₹{form.paymentAmount}</span>
                     </label>
                   </div>
                 </div>
