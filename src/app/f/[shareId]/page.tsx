@@ -327,7 +327,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
                   
                   <div className="flex flex-col gap-3 justify-center items-center mt-4 w-full max-w-sm mx-auto">
                     <a 
-                      href={`upi://pay?pa=musabansariofficia1212005@oksbi&am=${form.paymentAmount}&cu=INR`}
+                      href={`upi://pay?pa=musabansariofficia1212005@oksbi&pn=Musa%20Bansari&am=${form.paymentAmount}&cu=INR`}
                       className="flex items-center justify-center gap-2 px-6 py-3.5 bg-[#1E4E8C]/5 hover:bg-[#1E4E8C]/15 text-[#1E4E8C] border border-[#1E4E8C]/20 font-bold rounded-xl transition-colors w-full"
                     >
                       <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 8h6m-5 0a3 3 0 110 6H9l3 3m-3-6h6m6 1a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
