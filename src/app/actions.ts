@@ -525,8 +525,28 @@ export async function getAccountsData() {
     const events = await EventModel.find().lean();
 
     const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    // Get current Year, Month, Day in IST
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric'
+    });
+    
+    const parts = formatter.formatToParts(now);
+    let year = 0, month = 0, day = 0;
+    parts.forEach(p => {
+      if (p.type === 'year') year = parseInt(p.value);
+      if (p.type === 'month') month = parseInt(p.value) - 1; // JS months are 0-indexed
+      if (p.type === 'day') day = parseInt(p.value);
+    });
+
+    // 00:00 IST is 18:30 UTC of the previous day.
+    // So we take 00:00 UTC of the IST date, and subtract 5.5 hours.
+    const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+    const startOfToday = new Date(Date.UTC(year, month, day) - IST_OFFSET_MS);
+    const startOfMonth = new Date(Date.UTC(year, month, 1) - IST_OFFSET_MS);
 
     let todayRevenue = 0;
     let monthlyRevenue = 0;

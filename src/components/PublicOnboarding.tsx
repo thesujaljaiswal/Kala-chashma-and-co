@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { saveStationSelection, getEvents } from "@/app/actions";
-import TicketCard, { TicketData } from "./TicketCard";
 import confetti from "canvas-confetti";
 import { motion } from "framer-motion";
 
@@ -15,7 +14,6 @@ export default function PublicOnboarding({ urlEventShareId }: { urlEventShareId?
   
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [ticketData, setTicketData] = useState<TicketData | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
 
   const [isLoading, setIsLoading] = useState(true);
@@ -68,15 +66,6 @@ export default function PublicOnboarding({ urlEventShareId }: { urlEventShareId?
     
     setIsSaving(false);
     if (result.success && selectedEvent && selectedStationObj) {
-      setTicketData({
-        passengerName,
-        phone,
-        station: boarding,
-        ticketToken: result.ticketToken,
-        eventName: selectedEvent.name,
-        eventDate: selectedEvent.date,
-        stations: selectedEvent.stations
-      });
       setSaved(true);
 
       // Trigger Confetti matching logo colors
@@ -185,25 +174,19 @@ export default function PublicOnboarding({ urlEventShareId }: { urlEventShareId?
           </div>
         )}
 
-        {saved && ticketData ? (
+        {saved ? (
           <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: "spring", bounce: 0.4 }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center py-12"
           >
-            <TicketCard ticket={ticketData} />
-            <button 
-              onClick={() => {
-                setSaved(false);
-                setTicketData(null);
-                setPassengerName("");
-                setPhone("");
-                setBoarding("");
-              }}
-              className="mt-6 w-full text-center text-gray-400 hover:text-[#1E4E8C] transition-colors text-sm font-bold underline"
-            >
-              Book another passenger
-            </button>
+            <div className="w-24 h-24 mx-auto mb-6 bg-green-100 rounded-full flex items-center justify-center shadow-inner">
+              <svg className="w-12 h-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <h2 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Boarding Confirmed</h2>
+            <p className="text-gray-600 font-medium leading-relaxed">
+              Thank you! Your boarding station has been successfully recorded.
+            </p>
           </motion.div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">

@@ -244,7 +244,49 @@ export default function EventAttendancePage() {
             </div>
 
             {selectedEventId && (
-              <div className="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <>
+                {/* Overall Event Status */}
+                <div className="mb-8 bg-black/20 p-6 rounded-2xl border border-white/5">
+                  <h3 className="text-lg font-bold text-white mb-4">Overall Event Status</h3>
+                  <div className="flex flex-col md:flex-row gap-6 items-center">
+                    <div className="flex-1 w-full flex gap-2 sm:gap-4 text-center">
+                      <div className="flex-1 bg-white/5 p-4 rounded-xl border border-white/10">
+                        <div className="text-gray-400 text-sm mb-1">Total</div>
+                        <div className="text-3xl font-bold text-white">{attendees.length}</div>
+                      </div>
+                      <div className="flex-1 bg-white/5 p-4 rounded-xl border border-white/10">
+                        <div className="text-gray-400 text-sm mb-1">Present</div>
+                        <div className="text-3xl font-bold text-green-400">{attendees.filter(a => a.isPresent).length}</div>
+                      </div>
+                      <div className="flex-1 bg-white/5 p-4 rounded-xl border border-white/10">
+                        <div className="text-gray-400 text-sm mb-1">Remaining</div>
+                        <div className="text-3xl font-bold text-orange-400">{attendees.length - attendees.filter(a => a.isPresent).length}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="w-full md:w-1/3 flex justify-center">
+                      <div className="relative w-32 h-32 flex items-center justify-center">
+                        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                          <circle cx="50" cy="50" r="40" className="stroke-white/10" strokeWidth="8" fill="none" />
+                          <circle 
+                            cx="50" cy="50" r="40" 
+                            className="stroke-green-500 transition-all duration-1000 ease-out" 
+                            strokeWidth="8" fill="none" strokeLinecap="round"
+                            strokeDasharray="251.2" 
+                            strokeDashoffset={attendees.length > 0 ? 251.2 - (251.2 * (attendees.filter(a => a.isPresent).length / attendees.length)) : 251.2}
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <span className="text-2xl font-bold text-white">
+                            {attendees.length > 0 ? Math.round((attendees.filter(a => a.isPresent).length / attendees.length) * 100) : 0}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Scanner Section */}
                 <div className="bg-black/20 p-6 rounded-2xl border border-white/5">
                   <div className="flex justify-between items-center mb-4">
@@ -351,6 +393,7 @@ export default function EventAttendancePage() {
                   </div>
                 </div>
               </div>
+              </>
             )}
           </div>
         </div>

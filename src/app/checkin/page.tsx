@@ -220,7 +220,7 @@ export default function CheckinPage() {
                                   Call
                                 </a>
                                 <a 
-                                  href={`https://wa.me/${sel.phone.replace(/[^0-9]/g, '')}`}
+                                  href={`https://wa.me/${sel.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hi ${sel.passengerName}, hope you would have boarded this train from ${sel.station}. Please confirm with us once you have boarded.`)}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   onClick={(e) => e.stopPropagation()}
