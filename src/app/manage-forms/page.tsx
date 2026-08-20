@@ -30,6 +30,7 @@ export default function ManageFormsPage() {
   const [isPaymentEnabled, setIsPaymentEnabled] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState<number | "">("");
   const [isEmailTicketEnabled, setIsEmailTicketEnabled] = useState(false);
+  const [theme, setTheme] = useState("default");
 
   const [viewResponsesFor, setViewResponsesFor] = useState<any>(null);
   const [responses, setResponses] = useState<any[]>([]);
@@ -101,6 +102,7 @@ export default function ManageFormsPage() {
       setIsPaymentEnabled(form.isPaymentEnabled || false);
       setPaymentAmount(form.paymentAmount || "");
       setIsEmailTicketEnabled(form.isEmailTicketEnabled || false);
+      setTheme(form.theme || "default");
     } else {
       setEditingForm(null);
       setFormName("");
@@ -111,6 +113,7 @@ export default function ManageFormsPage() {
       setIsPaymentEnabled(false);
       setPaymentAmount("");
       setIsEmailTicketEnabled(false);
+      setTheme("default");
     }
     setIsBuilderOpen(true);
   };
@@ -178,10 +181,10 @@ export default function ManageFormsPage() {
     let success = false;
     const amount = Number(paymentAmount) || 0;
     if (editingForm) {
-      const res = await updateForm(editingForm._id, formName, formDescription, validFields, isRegistrationForm, registrationEventId, isPaymentEnabled, amount, isEmailTicketEnabled);
+      const res = await updateForm(editingForm._id, formName, formDescription, validFields, isRegistrationForm, registrationEventId, isPaymentEnabled, amount, isEmailTicketEnabled, theme);
       success = res.success;
     } else {
-      const res = await createForm(formName, formDescription, validFields, isRegistrationForm, registrationEventId, isPaymentEnabled, amount, isEmailTicketEnabled);
+      const res = await createForm(formName, formDescription, validFields, isRegistrationForm, registrationEventId, isPaymentEnabled, amount, isEmailTicketEnabled, theme);
       success = res.success;
     }
     
@@ -432,6 +435,28 @@ export default function ManageFormsPage() {
                     className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm placeholder-gray-600 transition-all min-h-[100px] resize-y"
                     placeholder="Add some instructions or a welcome message for your users..."
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-400 mb-2 uppercase tracking-wider">Form Theme</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setTheme('default')}
+                      className={`p-4 rounded-xl border-2 text-left transition-all ${theme === 'default' ? 'border-blue-500 bg-blue-500/10' : 'border-white/10 bg-black/40 hover:border-white/30'}`}
+                    >
+                      <h4 className="text-white font-bold mb-1">Default (Kala Chashma)</h4>
+                      <p className="text-xs text-gray-400">The classic theme with mandala background and gold accents.</p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTheme('fight-club')}
+                      className={`p-4 rounded-xl border-2 text-left transition-all ${theme === 'fight-club' ? 'border-red-600 bg-red-900/20' : 'border-white/10 bg-black/40 hover:border-red-900/50'}`}
+                    >
+                      <h4 className="text-white font-bold mb-1 font-mono uppercase tracking-widest">Project Mayhem</h4>
+                      <p className="text-xs text-gray-400">Gritty, dark, high contrast red accents. First rule: Do not talk about the form.</p>
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="flex items-center gap-3 py-2">

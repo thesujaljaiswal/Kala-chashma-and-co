@@ -122,11 +122,11 @@ export async function getFormByShareId(shareId: string) {
   }
 }
 
-export async function createForm(name: string, description: string, fields: any[], isRegistrationForm: boolean = false, registrationEventId: string | null = null, isPaymentEnabled: boolean = false, paymentAmount: number = 0, isEmailTicketEnabled: boolean = false) {
+export async function createForm(name: string, description: string, fields: any[], isRegistrationForm: boolean = false, registrationEventId: string | null = null, isPaymentEnabled: boolean = false, paymentAmount: number = 0, isEmailTicketEnabled: boolean = false, theme: string = 'default') {
   try {
     await dbConnect();
     const shareId = Math.random().toString(36).substring(2, 10);
-    const form = await FormModel.create({ name, description, shareId, fields, isRegistrationForm, registrationEventId: registrationEventId ?? undefined, isPaymentEnabled, paymentAmount, isEmailTicketEnabled });
+    const form = await FormModel.create({ name, description, shareId, fields, isRegistrationForm, registrationEventId: registrationEventId ?? undefined, isPaymentEnabled, paymentAmount, isEmailTicketEnabled, theme });
     return { success: true, shareId: form.shareId };
   } catch (error) {
     console.error("Failed to create form:", error);
@@ -134,7 +134,7 @@ export async function createForm(name: string, description: string, fields: any[
   }
 }
 
-export async function updateForm(id: string, name: string, description: string, fields: any[], isRegistrationForm: boolean = false, registrationEventId: string | null = null, isPaymentEnabled: boolean = false, paymentAmount: number = 0, isEmailTicketEnabled: boolean = false) {
+export async function updateForm(id: string, name: string, description: string, fields: any[], isRegistrationForm: boolean = false, registrationEventId: string | null = null, isPaymentEnabled: boolean = false, paymentAmount: number = 0, isEmailTicketEnabled: boolean = false, theme: string = 'default') {
   try {
     await dbConnect();
     
@@ -157,7 +157,7 @@ export async function updateForm(id: string, name: string, description: string, 
       }
     }
 
-    await FormModel.findByIdAndUpdate(id, { name, description, fields, isRegistrationForm, registrationEventId: registrationEventId ?? undefined, isPaymentEnabled, paymentAmount, isEmailTicketEnabled });
+    await FormModel.findByIdAndUpdate(id, { name, description, fields, isRegistrationForm, registrationEventId: registrationEventId ?? undefined, isPaymentEnabled, paymentAmount, isEmailTicketEnabled, theme });
     return { success: true };
   } catch (error) {
     console.error("Failed to update form:", error);
