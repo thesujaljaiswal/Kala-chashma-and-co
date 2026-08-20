@@ -177,6 +177,17 @@ export async function deleteForm(id: string) {
   }
 }
 
+export async function toggleFormAcceptingResponses(id: string, isAcceptingResponses: boolean) {
+  try {
+    await dbConnect();
+    await FormModel.findByIdAndUpdate(id, { isAcceptingResponses });
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to toggle form responses status:", error);
+    return { success: false, error: "Failed to toggle form responses status" };
+  }
+}
+
 export async function submitFormResponse(formId: string, responses: { fieldId?: string; label: string; value: string }[], paymentStatus?: 'pending' | 'success' | 'failed' | 'not_required', transactionId?: string) {
   try {
     await dbConnect();

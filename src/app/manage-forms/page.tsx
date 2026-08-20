@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import AdminSidebar from "@/components/AdminSidebar";
-import { getForms, createForm, updateForm, deleteForm, getFormResponses, getEvents, verifyFormPayment } from "@/app/actions";
+import { getForms, createForm, updateForm, deleteForm, getFormResponses, getEvents, verifyFormPayment, toggleFormAcceptingResponses } from "@/app/actions";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -203,6 +203,20 @@ export default function ManageFormsPage() {
     }
   };
 
+  const handleToggleAcceptingResponses = async (form: any) => {
+    const newValue = !(form.isAcceptingResponses ?? true); // Default to true if undefined
+    
+    // Optimistic update
+    setForms(forms.map(f => f._id === form._id ? { ...f, isAcceptingResponses: newValue } : f));
+    
+    const res = await toggleFormAcceptingResponses(form._id, newValue);
+    if (!res.success) {
+      // Revert on failure
+      alert("Failed to update form status.");
+      setForms(forms.map(f => f._id === form._id ? { ...f, isAcceptingResponses: !newValue } : f));
+    }
+  };
+
   const handleViewResponses = async (form: any) => {
     setViewResponsesFor(form);
     setIsLoadingResponses(true);
@@ -270,7 +284,16 @@ export default function ManageFormsPage() {
                   <div key={form._id} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-6 hover:bg-white/10 transition-colors group relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
                     
-                    <h3 className="text-xl font-bold text-white mb-2">{form.name}</h3>
+                    <div className="flex justify-between items-start mb-2 gap-2">
+                      <h3 className="text-xl font-bold text-white">{form.name}</h3>
+                      <button 
+                        onClick={() => handleToggleAcceptingResponses(form)}
+                        className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.isAcceptingResponses !== false ? 'bg-green-500' : 'bg-red-500/50 hover:bg-red-500/70'} focus:outline-none`}
+                        title={form.isAcceptingResponses !== false ? "Stop accepting responses" : "Start accepting responses"}
+                      >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${form.isAcceptingResponses !== false ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
                     <p className="text-sm text-gray-400 mb-6">{form.fields?.length || 0} Questions • Created {formatDate(form.createdAt)}</p>
                     
                     <div className="flex flex-wrap gap-2">

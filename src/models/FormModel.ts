@@ -18,6 +18,7 @@ export interface IForm extends Document {
   isPaymentEnabled?: boolean;
   paymentAmount?: number;
   isEmailTicketEnabled?: boolean;
+  isAcceptingResponses?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -39,7 +40,8 @@ const FormSchema = new mongoose.Schema<IForm>({
   registrationEventId: { type: String, default: null },
   isPaymentEnabled: { type: Boolean, default: false },
   paymentAmount: { type: Number, default: 0 },
-  isEmailTicketEnabled: { type: Boolean, default: false }
+  isEmailTicketEnabled: { type: Boolean, default: false },
+  isAcceptingResponses: { type: Boolean, default: true }
 }, {
   timestamps: true
 });

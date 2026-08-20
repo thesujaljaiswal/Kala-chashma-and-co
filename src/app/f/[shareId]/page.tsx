@@ -137,6 +137,18 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
     );
   }
 
+  if (form.isAcceptingResponses === false) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-[#FAF9F6]">
+        <main className="max-w-md w-full bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl p-8 border border-amber-200 text-center relative overflow-hidden">
+           <div className="absolute top-0 left-0 w-full h-1.5 bg-amber-500"></div>
+           <h2 className="text-3xl font-black text-gray-900 mb-4 tracking-tight">Form Closed</h2>
+           <p className="text-gray-600 font-medium leading-relaxed">This form is no longer accepting responses.</p>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-[#FAF9F6] relative overflow-hidden">
       {/* Background Mandala Elements - Light Theme */}
