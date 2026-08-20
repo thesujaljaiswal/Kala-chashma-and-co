@@ -450,6 +450,14 @@ export default function ManageFormsPage() {
                     </button>
                     <button
                       type="button"
+                      onClick={() => setTheme('party')}
+                      className={`p-4 rounded-xl border-2 text-left transition-all ${theme === 'party' ? 'border-purple-500 bg-purple-500/10' : 'border-white/10 bg-black/40 hover:border-purple-500/50'}`}
+                    >
+                      <h4 className="text-white font-bold mb-1">Nightlife / VIP Access 🪩</h4>
+                      <p className="text-xs text-gray-400">Sleek club aesthetic, dark glassmorphism, neon lighting and guestlist vibes.</p>
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setTheme('fight-club')}
                       className={`p-4 rounded-xl border-2 text-left transition-all ${theme === 'fight-club' ? 'border-red-600 bg-red-900/20' : 'border-white/10 bg-black/40 hover:border-red-900/50'}`}
                     >

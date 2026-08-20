@@ -5,6 +5,7 @@ import { getFormByShareId, submitFormResponse, uploadImageToCloudinary } from "@
 import { motion, AnimatePresence } from "framer-motion";
 import DefaultTheme from "@/components/forms/themes/default";
 import FightClubTheme from "@/components/forms/themes/fight-club";
+import PartyTheme from "@/components/forms/themes/party";
 
 export default function PublicFormPage({ params }: { params: Promise<{ shareId: string }> }) {
   const unwrappedParams = use(params);
@@ -170,6 +171,10 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
 
   if (form.theme === 'fight-club') {
     return <FightClubTheme {...themeProps} />;
+  }
+
+  if (form.theme === 'party') {
+    return <PartyTheme {...themeProps} />;
   }
 
   return <DefaultTheme {...themeProps} />;
