@@ -81,7 +81,7 @@ export default function FightClubTheme({
           <>
             <div className="mb-10 text-center border-b-2 border-[#2b2b2b] pb-8 relative">
               <p className="text-[#e63946] text-xs font-black uppercase tracking-[0.3em] mb-3">Homework Assignment</p>
-              <h1 className="text-4xl sm:text-5xl font-black mb-6 text-white uppercase tracking-tighter" style={{ fontFamily: 'Impact, sans-serif' }}>
+              <h1 className="text-4xl sm:text-5xl font-black mb-6 text-white uppercase tracking-normal" style={{ fontFamily: 'Impact, sans-serif' }}>
                 {form.name}
               </h1>
               {form.description && (
