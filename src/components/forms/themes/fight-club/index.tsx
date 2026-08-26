@@ -20,19 +20,13 @@ export default function FightClubTheme({
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-[#050505] relative overflow-hidden font-mono text-gray-300">
       
-      {/* Background concrete texture effect */}
-      <div className="fixed inset-0 z-0 opacity-30 pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noise%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.8%22 numOctaves=%224%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noise)%22/%3E%3C/svg%3E")', mixBlendMode: 'overlay' }}></div>
-      <div className="fixed inset-0 z-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#1a1a1a]/50 via-[#050505]/90 to-black pointer-events-none"></div>
+      {/* Background image effect */}
+      <div className="fixed inset-0 z-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'url("/fight_club_bg.jpg?v=2")', backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
+      <div className="fixed inset-0 z-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#1a1a1a]/70 via-[#050505]/95 to-black pointer-events-none"></div>
 
-      {/* Paper Street Soap SVG Graphic */}
-      <div className="fixed -bottom-32 -right-20 z-[1] opacity-30 pointer-events-none rotate-[-15deg] blur-[1px]">
-        <svg width="400" height="250" viewBox="0 0 400 250" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="20" y="20" width="360" height="210" rx="20" fill="#e63946" stroke="#991b1b" strokeWidth="6"/>
-          <path d="M40 50 Q 200 70 360 50" stroke="#991b1b" strokeWidth="3" fill="none" opacity="0.4"/>
-          <path d="M40 200 Q 200 180 360 200" stroke="#991b1b" strokeWidth="3" fill="none" opacity="0.4"/>
-          <text x="200" y="130" fontFamily="Impact, sans-serif" fontSize="48" fontWeight="bold" fill="#ffb3c1" textAnchor="middle" letterSpacing="1">PAPER STREET</text>
-          <text x="200" y="175" fontFamily="Impact, sans-serif" fontSize="32" fontWeight="bold" fill="#ffb3c1" textAnchor="middle" letterSpacing="4">SOAP CO.</text>
-        </svg>
+      {/* Paper Street Soap Graphic */}
+      <div className="fixed -bottom-16 -right-16 z-[1] opacity-40 pointer-events-none rotate-[-15deg] w-64 h-64 md:w-96 md:h-96">
+        <img src="/fight_club_soap.jpg?v=2" alt="Paper Street Soap Co." className="w-full h-full object-cover rounded-3xl mix-blend-screen grayscale contrast-125 sepia-[0.3]" />
       </div>
 
       <motion.main 
