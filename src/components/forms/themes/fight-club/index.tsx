@@ -1,5 +1,17 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeProps } from "../ThemeProps";
+import { useState, useEffect } from "react";
+
+const INTRO_IMAGES = [
+  '/fight_club/img1.jpeg',
+  '/fight_club/img2.jpeg',
+  '/fight_club/img3.jpeg',
+  '/fight_club/img4.jpeg',
+  '/fight_club/img5.jpeg',
+  '/fight_club/img6.jpeg',
+  '/fight_club/img7.jpeg',
+  '/fight_club/img8.jpeg',
+];
 
 export default function FightClubTheme({
   form,
@@ -17,8 +29,68 @@ export default function FightClubTheme({
   currentUndertakingField,
   setCurrentUndertakingField
 }: ThemeProps) {
+  const [introFinished, setIntroFinished] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    if (introFinished) return;
+    const interval = setInterval(() => {
+      setActiveIndex(prev => {
+        if (prev >= INTRO_IMAGES.length) {
+          clearInterval(interval);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 200); // Speed of each image sliding away
+
+    return () => clearInterval(interval);
+  }, [introFinished]);
+
+  useEffect(() => {
+    if (activeIndex >= INTRO_IMAGES.length) {
+      const timeout = setTimeout(() => {
+        setIntroFinished(true);
+      }, 400); // Wait for the last image to finish sliding
+      return () => clearTimeout(timeout);
+    }
+  }, [activeIndex]);
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-[#050505] relative overflow-hidden font-mono text-gray-300">
+      
+      <AnimatePresence>
+        {!introFinished && (
+          <motion.div 
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm overflow-hidden pointer-events-none"
+          >
+            <AnimatePresence>
+              {INTRO_IMAGES.map((src, idx) => {
+                if (idx < activeIndex) return null;
+                return (
+                  <motion.img
+                    key={src}
+                    src={src}
+                    initial={{ x: 0, opacity: 1, rotate: (idx % 2 === 0 ? -3 : 3) * (idx % 3 + 1), scale: 1 - idx * 0.03 }}
+                    exit={{ 
+                      x: idx % 2 === 0 ? "-100vw" : "100vw", 
+                      opacity: 0, 
+                      rotate: idx % 2 === 0 ? -45 : 45 
+                    }}
+                    transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
+                    className="absolute w-auto h-auto max-w-[90vw] max-h-[90vh] object-contain shadow-[0px_0px_30px_rgba(0,0,0,0.8)] border-4 border-[#2b2b2b] bg-black p-2"
+                    style={{
+                      zIndex: 100 - idx,
+                    }}
+                  />
+                );
+              })}
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       {/* Background image effect */}
       <div className="fixed inset-0 z-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'url("/fight_club_bg.jpg?v=2")', backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
