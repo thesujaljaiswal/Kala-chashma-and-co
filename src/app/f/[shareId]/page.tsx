@@ -36,15 +36,27 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
     setErrorField(null);
     setErrorMsg("");
 
-    // Validate required fields and undertakings
+    // Validate required fields, email formatting, and undertakings
     for (const field of form.fields) {
-      if (field.required && !responses[field.label]?.trim()) {
+      const value = responses[field.label]?.trim();
+      
+      if (field.required && !value) {
         setErrorMsg(`Please answer: ${field.label}`);
         setErrorField(field.label);
         document.getElementById(`field-${field.label.replace(/\s+/g, '-')}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
       
+      if (field.type === 'email' && value) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(value)) {
+          setErrorMsg(`Please enter a valid email for: ${field.label}`);
+          setErrorField(field.label);
+          document.getElementById(`field-${field.label.replace(/\s+/g, '-')}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return;
+        }
+      }
+
       if (field.type === 'undertaking' && responses[field.label] !== 'Accepted') {
         setErrorMsg(`You must accept the undertaking: ${field.label}`);
         setErrorField(field.label);
