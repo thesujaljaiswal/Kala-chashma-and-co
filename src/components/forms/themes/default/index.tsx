@@ -15,7 +15,8 @@ export default function DefaultTheme({
   showUndertakingModal,
   setShowUndertakingModal,
   currentUndertakingField,
-  setCurrentUndertakingField
+  setCurrentUndertakingField,
+  totalPaymentAmount
 }: ThemeProps) {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-[#FAF9F6] relative overflow-hidden">
@@ -72,8 +73,8 @@ export default function DefaultTheme({
             <h2 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Response Submitted</h2>
             <p className="text-gray-600 font-medium leading-relaxed">
               Thank you! Your response has been recorded.
-              {form.isPaymentEnabled && form.paymentAmount > 0 && <br/>}
-              {form.isPaymentEnabled && form.paymentAmount > 0 && <span className="text-[#1E4E8C] font-bold mt-2 block">Your ticket will be sent to your email once the payment is verified by our team.</span>}
+              {form.isPaymentEnabled && totalPaymentAmount > 0 && <br/>}
+              {form.isPaymentEnabled && totalPaymentAmount > 0 && <span className="text-[#1E4E8C] font-bold mt-2 block">Your ticket will be sent to your email once the payment is verified by our team.</span>}
             </p>
           </motion.div>
         ) : (
@@ -124,7 +125,7 @@ export default function DefaultTheme({
                         className="w-full bg-white/90 border border-gray-200 rounded-2xl px-5 py-4 text-gray-900 appearance-none focus:outline-none focus:ring-2 focus:ring-[#1E4E8C]/20 focus:border-[#1E4E8C] transition-all cursor-pointer shadow-sm disabled:opacity-50 font-medium text-lg"
                       >
                         <option value="" disabled>Select an option</option>
-                        {field.options?.map((opt: string, i: number) => (
+                        {(field.type === 'dynamic_pricing' ? (field.dynamicPricingOptions || []).map((o: any) => o.label) : field.options)?.map((opt: string, i: number) => (
                           <option key={i} value={opt}>{opt}</option>
                         ))}
                       </select>
@@ -134,9 +135,9 @@ export default function DefaultTheme({
                         </svg>
                       </div>
                     </div>
-                  ) : field.type === 'radio' ? (
+                  ) : field.type === 'radio' || field.type === 'dynamic_pricing' ? (
                     <div className="space-y-3 bg-white/50 p-5 rounded-2xl border border-gray-200">
-                      {field.options?.map((opt: string, i: number) => (
+                      {(field.type === 'dynamic_pricing' ? (field.dynamicPricingOptions || []).map((o: any) => o.label) : field.options)?.map((opt: string, i: number) => (
                         <label key={i} className="flex items-center gap-3 cursor-pointer group">
                           <input
                             type="radio"
@@ -250,10 +251,10 @@ export default function DefaultTheme({
                 </div>
               ))}
 
-              {form.isPaymentEnabled && form.paymentAmount > 0 && (
+              {form.isPaymentEnabled && totalPaymentAmount > 0 && (
                 <div className="bg-white/50 p-6 rounded-2xl border border-gray-200 text-center space-y-4 shadow-sm mt-4">
                   <h3 className="text-xl font-bold text-gray-900">Payment Required</h3>
-                  <p className="text-gray-600 text-sm">Please pay <span className="font-bold text-black">₹{form.paymentAmount}</span> using the QR code below.</p>
+                  <p className="text-gray-600 text-sm">Please pay <span className="font-bold text-black">₹{totalPaymentAmount}</span> using the QR code below.</p>
                   
                   <div className="w-48 h-48 mx-auto bg-white rounded-2xl shadow-sm border border-gray-200 p-2 overflow-hidden flex items-center justify-center">
                     <img src="/payment QR.jpeg" alt="Payment QR Code" className="w-full h-full object-cover rounded-xl" />
@@ -261,7 +262,7 @@ export default function DefaultTheme({
                   
                   <div className="flex flex-col gap-3 justify-center items-center mt-4 w-full max-w-sm mx-auto">
                     <a 
-                      href={`upi://pay?pa=musabansariofficial212005@oksbi&pn=Rtr.%20Musab%20Ansari&aid=uGICAgKDGwvbnHg&am=${form.paymentAmount}&cu=INR`}
+                      href={`upi://pay?pa=musabansariofficial212005@oksbi&pn=Rtr.%20Musab%20Ansari&aid=uGICAgKDGwvbnHg&am=${totalPaymentAmount}&cu=INR`}
                       className="flex items-center justify-center gap-2 px-6 py-3.5 bg-[#1E4E8C]/5 hover:bg-[#1E4E8C]/15 text-[#1E4E8C] border border-[#1E4E8C]/20 font-bold rounded-xl transition-colors w-full"
                     >
                       <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 8h6m-5 0a3 3 0 110 6H9l3 3m-3-6h6m6 1a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -277,7 +278,7 @@ export default function DefaultTheme({
                         onChange={(e) => setPaymentConfirmed(e.target.checked)} 
                         className="w-5 h-5 rounded text-[#1E4E8C] border-gray-300 focus:ring-[#1E4E8C] cursor-pointer"
                       />
-                      <span className="font-bold text-gray-800">I have successfully paid ₹{form.paymentAmount}</span>
+                      <span className="font-bold text-gray-800">I have successfully paid ₹{totalPaymentAmount}</span>
                     </label>
                   </div>
                 </div>
@@ -285,7 +286,7 @@ export default function DefaultTheme({
 
               <button
                 type="submit"
-                disabled={isSubmitting || (form.isPaymentEnabled && form.paymentAmount > 0 && !paymentConfirmed)}
+                disabled={isSubmitting || (form.isPaymentEnabled && totalPaymentAmount > 0 && !paymentConfirmed)}
                 className="w-full bg-gradient-to-r from-[#1E4E8C] to-[#0A2A5C] hover:from-[#153A6E] hover:to-[#071D40] text-white font-bold py-4 px-6 rounded-2xl shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:hover:scale-100 flex items-center justify-center gap-2 text-lg mt-8 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (
@@ -294,7 +295,7 @@ export default function DefaultTheme({
                     Processing...
                   </>
                 ) : (
-                  form.isPaymentEnabled && form.paymentAmount > 0 ? `Submit` : "Submit Response"
+                  form.isPaymentEnabled && totalPaymentAmount > 0 ? `Submit` : "Submit Response"
                 )}
               </button>
 

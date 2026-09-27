@@ -29,6 +29,23 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
     fetchForm();
   }, [unwrappedParams.shareId]);
 
+  let calculatedDynamicTotal = 0;
+  let hasDynamicPricing = false;
+  if (form?.fields) {
+    form.fields.forEach((field: any) => {
+      if (field.type === 'dynamic_pricing') {
+        hasDynamicPricing = true;
+        if (responses[field.label]) {
+          const selectedOpt = (field.dynamicPricingOptions || []).find((opt: any) => opt.label === responses[field.label]);
+          if (selectedOpt) {
+            calculatedDynamicTotal += (selectedOpt.price || 0);
+          }
+        }
+      }
+    });
+  }
+  const totalPaymentAmount = hasDynamicPricing ? calculatedDynamicTotal : (form?.paymentAmount || 0);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form) return;
@@ -67,7 +84,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
 
     setIsSubmitting(true);
 
-    if (form.isPaymentEnabled && form.paymentAmount > 0 && !paymentConfirmed) {
+    if (form.isPaymentEnabled && totalPaymentAmount > 0 && !paymentConfirmed) {
       setErrorMsg("Please confirm that you have made the payment by checking the box.");
       return;
     }
@@ -99,7 +116,7 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
         }
       }
 
-      if (form.isPaymentEnabled && form.paymentAmount > 0) {
+      if (form.isPaymentEnabled && totalPaymentAmount > 0) {
       const result = await submitFormResponse(form._id, responsesArray, 'pending');
       setIsSubmitting(false);
       if (result.success) {
@@ -178,7 +195,8 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
     showUndertakingModal,
     setShowUndertakingModal,
     currentUndertakingField,
-    setCurrentUndertakingField
+    setCurrentUndertakingField,
+    totalPaymentAmount
   };
 
   if (form.theme === 'fight-club') {

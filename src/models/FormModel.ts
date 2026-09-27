@@ -3,8 +3,9 @@ import mongoose, { Document, Model } from "mongoose";
 export interface IFormField {
   id?: string;
   label: string;
-  type: "text" | "dropdown" | "radio" | "checkbox" | "number" | "email" | "undertaking" | "file";
+  type: "text" | "dropdown" | "radio" | "checkbox" | "number" | "email" | "undertaking" | "file" | "dynamic_pricing";
   options?: string[]; // for dropdown, radio, checkbox
+  dynamicPricingOptions?: { label: string; price: number }[]; // for dynamic_pricing
   required: boolean;
 }
 
@@ -24,11 +25,17 @@ export interface IForm extends Document {
   updatedAt: Date;
 }
 
+const DynamicPricingOptionSchema = new mongoose.Schema({
+  label: { type: String, required: true },
+  price: { type: Number, required: true }
+});
+
 const FormFieldSchema = new mongoose.Schema({
   id: { type: String },
   label: { type: String, required: true },
-  type: { type: String, enum: ["text", "dropdown", "radio", "checkbox", "number", "email", "undertaking", "file"], required: true },
+  type: { type: String, enum: ["text", "dropdown", "radio", "checkbox", "number", "email", "undertaking", "file", "dynamic_pricing"], required: true },
   options: { type: [String], default: [] },
+  dynamicPricingOptions: { type: [DynamicPricingOptionSchema], default: [] },
   required: { type: Boolean, default: false }
 });
 

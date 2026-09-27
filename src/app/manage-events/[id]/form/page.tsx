@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import AdminSidebar from "@/components/AdminSidebar";
@@ -18,6 +18,20 @@ export default function FormBuilderPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [draggedFieldIdx, setDraggedFieldIdx] = useState<number | null>(null);
+
+  const saveFormRef = useRef<any>(null);
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        if (saveFormRef.current) {
+          saveFormRef.current();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -100,6 +114,8 @@ export default function FormBuilderPage() {
       alert("Failed to save form fields.");
     }
   };
+
+  saveFormRef.current = handleSave;
 
   return (
     <div className="flex w-full min-h-[calc(100vh-64px)] relative overflow-hidden bg-black/20">

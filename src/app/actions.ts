@@ -566,9 +566,24 @@ export async function getAccountsData() {
 
     for (const response of verifiedResponses) {
       const form = forms.find(f => f._id.toString() === response.formId.toString());
-      if (!form || !form.isPaymentEnabled || (form.paymentAmount || 0) <= 0) continue;
+      if (!form) continue;
+      let dynamicTotal = 0;
+      let hasDynamicPricing = false;
+      if (form.fields) {
+        form.fields.forEach((field: any) => {
+          if (field.type === 'dynamic_pricing') {
+            hasDynamicPricing = true;
+            const resField = response.responses.find((r: any) => r.label === field.label);
+            if (resField) {
+              const opt = (field.dynamicPricingOptions || []).find((o: any) => o.label === resField.value);
+              if (opt) dynamicTotal += (opt.price || 0);
+            }
+          }
+        });
+      }
+      const amount = hasDynamicPricing ? dynamicTotal : (form.paymentAmount || 0);
+      if (amount <= 0 && !form.isPaymentEnabled) continue;
 
-      const amount = form.paymentAmount || 0;
       const responseDate = new Date(response.createdAt);
 
       if (responseDate >= startOfToday) {
@@ -758,9 +773,25 @@ export async function getEventFinancials(eventId: string) {
     let totalRevenue = 0;
     for (const response of verifiedResponses) {
       const form = forms.find(f => f._id.toString() === response.formId.toString());
-      if (form && form.isPaymentEnabled && form.paymentAmount) {
-        totalRevenue += form.paymentAmount;
+      
+      if (form && form.isPaymentEnabled) {
+        let dynamicTotal = 0;
+        let hasDynamicPricing = false;
+        if (form.fields) {
+          form.fields.forEach((field: any) => {
+            if (field.type === 'dynamic_pricing') {
+              hasDynamicPricing = true;
+              const resField = response.responses.find((r: any) => r.label === field.label);
+              if (resField) {
+                const opt = (field.dynamicPricingOptions || []).find((o: any) => o.label === resField.value);
+                if (opt) dynamicTotal += (opt.price || 0);
+              }
+            }
+          });
+        }
+        totalRevenue += hasDynamicPricing ? dynamicTotal : (form.paymentAmount || 0);
       }
+
     }
     
     // Get expenses for this event

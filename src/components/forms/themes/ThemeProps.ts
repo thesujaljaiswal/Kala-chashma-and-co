@@ -15,4 +15,5 @@ export interface ThemeProps {
   setShowUndertakingModal: (val: boolean) => void;
   currentUndertakingField: string | null;
   setCurrentUndertakingField: (val: string | null) => void;
+  totalPaymentAmount: number;
 }

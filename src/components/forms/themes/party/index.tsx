@@ -15,7 +15,8 @@ export default function PartyTheme({
   showUndertakingModal,
   setShowUndertakingModal,
   currentUndertakingField,
-  setCurrentUndertakingField
+  setCurrentUndertakingField,
+  totalPaymentAmount
 }: ThemeProps) {
   
   return (
@@ -74,8 +75,8 @@ export default function PartyTheme({
             <h2 className="text-4xl font-black text-white mb-4 tracking-tight uppercase">You're On The List</h2>
             <p className="text-gray-400 text-lg">
               Your RSVP has been secured. Get ready.
-              {form.isPaymentEnabled && form.paymentAmount > 0 && <br/>}
-              {form.isPaymentEnabled && form.paymentAmount > 0 && (
+              {form.isPaymentEnabled && totalPaymentAmount > 0 && <br/>}
+              {form.isPaymentEnabled && totalPaymentAmount > 0 && (
                 <span className="text-cyan-400 font-bold mt-4 block">
                   Access pass pending payment verification.
                 </span>
@@ -130,7 +131,7 @@ export default function PartyTheme({
                         className="w-full bg-[#1a1a24] border border-white/10 rounded-xl px-4 py-3.5 text-white appearance-none focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all cursor-pointer disabled:opacity-50 text-base"
                       >
                         <option value="" disabled>Select an option</option>
-                        {field.options?.map((opt: string, i: number) => (
+                        {(field.type === 'dynamic_pricing' ? (field.dynamicPricingOptions || []).map((o: any) => o.label) : field.options)?.map((opt: string, i: number) => (
                           <option key={i} value={opt}>{opt}</option>
                         ))}
                       </select>
@@ -138,9 +139,9 @@ export default function PartyTheme({
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                       </div>
                     </div>
-                  ) : field.type === 'radio' ? (
+                  ) : field.type === 'radio' || field.type === 'dynamic_pricing' ? (
                     <div className="space-y-3 pt-2">
-                      {field.options?.map((opt: string, i: number) => (
+                      {(field.type === 'dynamic_pricing' ? (field.dynamicPricingOptions || []).map((o: any) => o.label) : field.options)?.map((opt: string, i: number) => (
                         <label key={i} className="flex items-center gap-4 cursor-pointer group bg-[#1a1a24] border border-white/5 p-3.5 rounded-xl hover:border-purple-500/50 transition-colors">
                           <input
                             type="radio"
@@ -252,13 +253,13 @@ export default function PartyTheme({
                 </div>
               ))}
 
-              {form.isPaymentEnabled && form.paymentAmount > 0 && (
+              {form.isPaymentEnabled && totalPaymentAmount > 0 && (
                 <div className="bg-[#1a1a24] p-6 rounded-2xl border border-white/5 space-y-5 mt-8 shadow-inner relative overflow-hidden">
                   <div className="absolute -right-10 -top-10 w-32 h-32 bg-purple-500/10 blur-[30px] rounded-full"></div>
                   
                   <div className="relative z-10">
                     <h3 className="text-xl font-bold text-white tracking-wide">Cover Charge</h3>
-                    <p className="text-gray-400 text-sm mt-1">Amount required for entry: <span className="text-white font-mono bg-white/10 px-2 py-0.5 rounded">₹{form.paymentAmount}</span></p>
+                    <p className="text-gray-400 text-sm mt-1">Amount required for entry: <span className="text-white font-mono bg-white/10 px-2 py-0.5 rounded">₹{totalPaymentAmount}</span></p>
                   </div>
                   
                   <div className="w-48 h-48 bg-white rounded-xl p-2 mx-auto shadow-lg relative z-10">
@@ -267,7 +268,7 @@ export default function PartyTheme({
                   
                   <div className="pt-2 text-center relative z-10">
                     <a 
-                      href={`upi://pay?pa=musabansariofficial212005@oksbi&pn=Rtr.%20Musab%20Ansari&aid=uGICAgKDGwvbnHg&am=${form.paymentAmount}&cu=INR`}
+                      href={`upi://pay?pa=musabansariofficial212005@oksbi&pn=Rtr.%20Musab%20Ansari&aid=uGICAgKDGwvbnHg&am=${totalPaymentAmount}&cu=INR`}
                       className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl font-semibold transition-colors border border-white/10"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
@@ -283,7 +284,7 @@ export default function PartyTheme({
                         onChange={(e) => setPaymentConfirmed(e.target.checked)} 
                         className="w-5 h-5 bg-black/50 border-white/20 text-purple-500 focus:ring-purple-500 rounded cursor-pointer"
                       />
-                      <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors">I have completed the payment of ₹{form.paymentAmount}</span>
+                      <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors">I have completed the payment of ₹{totalPaymentAmount}</span>
                     </label>
                   </div>
                 </div>
@@ -292,10 +293,10 @@ export default function PartyTheme({
               <div className="pt-4 mt-8">
                 <button
                   type="submit"
-                  disabled={isSubmitting || (form.isPaymentEnabled && form.paymentAmount > 0 && !paymentConfirmed)}
+                  disabled={isSubmitting || (form.isPaymentEnabled && totalPaymentAmount > 0 && !paymentConfirmed)}
                   className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white font-bold py-4 px-8 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(147,51,234,0.3)] hover:shadow-[0_0_30px_rgba(147,51,234,0.5)] tracking-wide"
                 >
-                  {isSubmitting ? "Processing..." : form.isPaymentEnabled && form.paymentAmount > 0 ? "Pay & RSVP" : "Confirm RSVP"}
+                  {isSubmitting ? "Processing..." : form.isPaymentEnabled && totalPaymentAmount > 0 ? "Pay & RSVP" : "Confirm RSVP"}
                 </button>
               </div>
 

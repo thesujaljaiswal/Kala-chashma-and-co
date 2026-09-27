@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import AdminSidebar from "@/components/AdminSidebar";
@@ -38,6 +38,20 @@ export default function ManageFormsPage() {
   const [selectedPaymentDetails, setSelectedPaymentDetails] = useState<any>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  const saveFormRef = useRef<any>(null);
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        if (isBuilderOpen && saveFormRef.current) {
+          e.preventDefault();
+          saveFormRef.current();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isBuilderOpen]);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -128,6 +142,9 @@ export default function ManageFormsPage() {
     if ((newType === "dropdown" || newType === "radio" || newType === "checkbox") && (!updated[index].options || updated[index].options.length === 0)) {
       updated[index].options = [""];
     }
+    if (newType === "dynamic_pricing" && (!updated[index].dynamicPricingOptions || updated[index].dynamicPricingOptions.length === 0)) {
+      updated[index].dynamicPricingOptions = [{ label: "", price: 0 }];
+    }
     if (newType === "undertaking" && !updated[index].label) {
       updated[index].label = "Undertaking Form";
     }
@@ -196,6 +213,8 @@ export default function ManageFormsPage() {
       alert("Failed to save form.");
     }
   };
+
+  saveFormRef.current = handleSaveForm;
 
   const handleDeleteForm = async (id: string, name: string) => {
     if (confirm(`Are you sure you want to delete the form "${name}"? This will also delete all responses.`)) {
@@ -553,6 +572,7 @@ export default function ManageFormsPage() {
                               <option value="dropdown" className="bg-gray-800">Dropdown</option>
                               <option value="radio" className="bg-gray-800">Radio Buttons</option>
                               <option value="checkbox" className="bg-gray-800">Checkboxes</option>
+                              <option value="dynamic_pricing" className="bg-gray-800">Dynamic Pricing (Radio)</option>
                               <option value="undertaking" className="bg-gray-800">Undertaking Form</option>
                               <option value="file" className="bg-gray-800">File Upload (Image)</option>
                             </select>
@@ -603,48 +623,99 @@ export default function ManageFormsPage() {
                           </div>
                         </div>
                         
-                        {(field.type === 'dropdown' || field.type === 'radio' || field.type === 'checkbox') && (
-                          <div className={`${field.type === 'radio' ? 'bg-purple-500/5 border-purple-500/20' : field.type === 'checkbox' ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-indigo-500/5 border-indigo-500/20'} p-4 rounded-xl border sm:ml-10`}>
-                            <label className={`block text-xs font-bold ${field.type === 'radio' ? 'text-purple-400' : field.type === 'checkbox' ? 'text-emerald-400' : 'text-indigo-400'} mb-4 uppercase tracking-wider`}>
-                              {field.type === 'dropdown' ? 'Dropdown Options' : field.type === 'radio' ? 'Radio Options' : 'Checkbox Options'}
+                        {(field.type === 'dropdown' || field.type === 'radio' || field.type === 'checkbox' || field.type === 'dynamic_pricing') && (
+                          <div className={`${field.type === 'radio' ? 'bg-purple-500/5 border-purple-500/20' : field.type === 'checkbox' ? 'bg-emerald-500/5 border-emerald-500/20' : field.type === 'dynamic_pricing' ? 'bg-orange-500/5 border-orange-500/20' : 'bg-indigo-500/5 border-indigo-500/20'} p-4 rounded-xl border sm:ml-10`}>
+                            <label className={`block text-xs font-bold ${field.type === 'radio' ? 'text-purple-400' : field.type === 'checkbox' ? 'text-emerald-400' : field.type === 'dynamic_pricing' ? 'text-orange-400' : 'text-indigo-400'} mb-4 uppercase tracking-wider`}>
+                              {field.type === 'dropdown' ? 'Dropdown Options' : field.type === 'radio' ? 'Radio Options' : field.type === 'checkbox' ? 'Checkbox Options' : 'Dynamic Pricing Options'}
                             </label>
                             <div className="space-y-3">
-                              {(field.options || []).map((opt: string, optIdx: number) => (
-                                <div key={optIdx} className="flex items-center gap-2">
-                                  <div className={`w-3 h-3 ${field.type === 'radio' ? 'rounded-full bg-purple-500/50' : field.type === 'checkbox' ? 'rounded bg-emerald-500/50' : 'rounded-full bg-indigo-500/50'}`}></div>
-                                  <input
-                                    type="text"
-                                    required
-                                    value={opt}
-                                    onChange={(e) => {
-                                      const newOptions = [...(field.options || [])];
-                                      newOptions[optIdx] = e.target.value;
-                                      updateCustomField(index, "options", newOptions);
-                                    }}
-                                    className="flex-1 min-w-0 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                                    placeholder={`Option ${optIdx + 1}`}
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const newOptions = [...(field.options || [])];
-                                      newOptions.splice(optIdx, 1);
-                                      updateCustomField(index, "options", newOptions);
-                                    }}
-                                    className="text-gray-500 hover:text-red-400 p-1"
-                                    title="Remove Option"
-                                  >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                  </button>
-                                </div>
-                              ))}
+                              {field.type === 'dynamic_pricing' ? (
+                                (field.dynamicPricingOptions || []).map((opt: any, optIdx: number) => (
+                                  <div key={optIdx} className="flex items-center gap-2">
+                                    <div className="w-3 h-3 rounded-full bg-orange-500/50"></div>
+                                    <input
+                                      type="text"
+                                      required
+                                      value={opt.label}
+                                      onChange={(e) => {
+                                        const newOptions = [...(field.dynamicPricingOptions || [])];
+                                        newOptions[optIdx] = { ...newOptions[optIdx], label: e.target.value };
+                                        updateCustomField(index, "dynamicPricingOptions", newOptions);
+                                      }}
+                                      className="flex-1 min-w-0 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
+                                      placeholder={`Option Label`}
+                                    />
+                                    <input
+                                      type="number"
+                                      required
+                                      value={opt.price === '' ? '' : opt.price}
+                                      onChange={(e) => {
+                                        const val = e.target.value === '' ? '' : Number(e.target.value);
+                                        const newOptions = [...(field.dynamicPricingOptions || [])];
+                                        newOptions[optIdx] = { ...newOptions[optIdx], price: val };
+                                        updateCustomField(index, "dynamicPricingOptions", newOptions);
+                                      }}
+                                      className="w-24 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
+                                      placeholder={`Price (₹)`}
+                                      min="0"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const newOptions = [...(field.dynamicPricingOptions || [])];
+                                        newOptions.splice(optIdx, 1);
+                                        updateCustomField(index, "dynamicPricingOptions", newOptions);
+                                      }}
+                                      className="text-gray-500 hover:text-red-400 p-1"
+                                      title="Remove Option"
+                                    >
+                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                    </button>
+                                  </div>
+                                ))
+                              ) : (
+                                (field.options || []).map((opt: string, optIdx: number) => (
+                                  <div key={optIdx} className="flex items-center gap-2">
+                                    <div className={`w-3 h-3 ${field.type === 'radio' ? 'rounded-full bg-purple-500/50' : field.type === 'checkbox' ? 'rounded bg-emerald-500/50' : 'rounded-full bg-indigo-500/50'}`}></div>
+                                    <input
+                                      type="text"
+                                      required
+                                      value={opt}
+                                      onChange={(e) => {
+                                        const newOptions = [...(field.options || [])];
+                                        newOptions[optIdx] = e.target.value;
+                                        updateCustomField(index, "options", newOptions);
+                                      }}
+                                      className="flex-1 min-w-0 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                                      placeholder={`Option ${optIdx + 1}`}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const newOptions = [...(field.options || [])];
+                                        newOptions.splice(optIdx, 1);
+                                        updateCustomField(index, "options", newOptions);
+                                      }}
+                                      className="text-gray-500 hover:text-red-400 p-1"
+                                      title="Remove Option"
+                                    >
+                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                    </button>
+                                  </div>
+                                ))
+                              )}
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const newOptions = [...(field.options || []), ""];
-                                  updateCustomField(index, "options", newOptions);
+                                  if (field.type === 'dynamic_pricing') {
+                                    const newOptions = [...(field.dynamicPricingOptions || []), { label: "", price: 0 }];
+                                    updateCustomField(index, "dynamicPricingOptions", newOptions);
+                                  } else {
+                                    const newOptions = [...(field.options || []), ""];
+                                    updateCustomField(index, "options", newOptions);
+                                  }
                                 }}
-                                className={`flex items-center gap-2 ${field.type === 'radio' ? 'text-purple-400 hover:text-purple-300' : field.type === 'checkbox' ? 'text-emerald-400 hover:text-emerald-300' : 'text-indigo-400 hover:text-indigo-300'} text-sm font-semibold transition-colors mt-2`}
+                                className={`flex items-center gap-2 ${field.type === 'radio' ? 'text-purple-400 hover:text-purple-300' : field.type === 'checkbox' ? 'text-emerald-400 hover:text-emerald-300' : field.type === 'dynamic_pricing' ? 'text-orange-400 hover:text-orange-300' : 'text-indigo-400 hover:text-indigo-300'} text-sm font-semibold transition-colors mt-2`}
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
                                 Add Option

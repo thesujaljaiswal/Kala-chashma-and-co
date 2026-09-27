@@ -27,7 +27,8 @@ export default function FightClubTheme({
   showUndertakingModal,
   setShowUndertakingModal,
   currentUndertakingField,
-  setCurrentUndertakingField
+  setCurrentUndertakingField,
+  totalPaymentAmount
 }: ThemeProps) {
   const [introFinished, setIntroFinished] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -136,7 +137,7 @@ export default function FightClubTheme({
               <p className="text-white text-lg font-black mt-6 uppercase tracking-widest bg-[#e63946] text-black inline-block px-4 py-2">
                 YOUR RESPONSE IS LOGGED IN PROJECT MAYHEM.
               </p>
-              {form.isPaymentEnabled && form.paymentAmount > 0 && (
+              {form.isPaymentEnabled && totalPaymentAmount > 0 && (
                 <p className="text-[#e63946] font-bold mt-4 uppercase text-xs tracking-widest border border-[#e63946] inline-block p-2">
                   [ TICKET TRANSMISSION PENDING PAYMENT VERIFICATION ]
                 </p>
@@ -191,7 +192,7 @@ export default function FightClubTheme({
                         className="w-full bg-[#111] border-b-2 border-[#333] border-t-0 border-x-0 rounded-none px-4 py-3 text-white appearance-none focus:outline-none focus:border-[#e63946] focus:bg-[#1a1a1a] transition-all cursor-pointer disabled:opacity-50 text-base font-mono uppercase"
                       >
                         <option value="" disabled>-- MAKE A CHOICE --</option>
-                        {field.options?.map((opt: string, i: number) => (
+                        {(field.type === 'dynamic_pricing' ? (field.dynamicPricingOptions || []).map((o: any) => o.label) : field.options)?.map((opt: string, i: number) => (
                           <option key={i} value={opt}>{opt}</option>
                         ))}
                       </select>
@@ -199,9 +200,9 @@ export default function FightClubTheme({
                         ▼
                       </div>
                     </div>
-                  ) : field.type === 'radio' ? (
+                  ) : field.type === 'radio' || field.type === 'dynamic_pricing' ? (
                     <div className="space-y-3 bg-[#111] p-4 border border-[#2b2b2b]">
-                      {field.options?.map((opt: string, i: number) => (
+                      {(field.type === 'dynamic_pricing' ? (field.dynamicPricingOptions || []).map((o: any) => o.label) : field.options)?.map((opt: string, i: number) => (
                         <label key={i} className="flex items-center gap-4 cursor-pointer group">
                           <input
                             type="radio"
@@ -312,10 +313,10 @@ export default function FightClubTheme({
                 </div>
               ))}
 
-              {form.isPaymentEnabled && form.paymentAmount > 0 && (
+              {form.isPaymentEnabled && totalPaymentAmount > 0 && (
                 <div className="bg-[#111] p-6 border-2 border-[#e63946] space-y-4 mt-8 relative shadow-[4px_4px_0px_#e63946]">
                   <h3 className="text-xl font-black text-white uppercase tracking-widest">The Toll</h3>
-                  <p className="text-gray-400 text-sm uppercase tracking-wide">The things you own end up owning you. Relinquish <span className="font-black text-[#e63946] text-base">₹{form.paymentAmount}</span> via the node below.</p>
+                  <p className="text-gray-400 text-sm uppercase tracking-wide">The things you own end up owning you. Relinquish <span className="font-black text-[#e63946] text-base">₹{totalPaymentAmount}</span> via the node below.</p>
                   
                   <div className="w-48 h-48 bg-white border-4 border-black p-2 mx-auto mix-blend-screen opacity-90 grayscale contrast-150">
                     <img src="/payment QR.jpeg" alt="Payment QR Code" className="w-full h-full object-cover" />
@@ -323,7 +324,7 @@ export default function FightClubTheme({
                   
                   <div className="pt-4 text-center">
                     <a 
-                      href={`upi://pay?pa=musabansariofficial212005@oksbi&pn=Rtr.%20Musab%20Ansari&aid=uGICAgKDGwvbnHg&am=${form.paymentAmount}&cu=INR`}
+                      href={`upi://pay?pa=musabansariofficial212005@oksbi&pn=Rtr.%20Musab%20Ansari&aid=uGICAgKDGwvbnHg&am=${totalPaymentAmount}&cu=INR`}
                       className="inline-block bg-white text-black hover:bg-[#e63946] hover:text-white px-8 py-3 uppercase font-black text-sm tracking-widest transition-colors border-2 border-black"
                     >
                       INITIALIZE TRANSFER
@@ -338,7 +339,7 @@ export default function FightClubTheme({
                         onChange={(e) => setPaymentConfirmed(e.target.checked)} 
                         className="w-6 h-6 bg-black border-gray-600 text-[#e63946] focus:ring-[#e63946] focus:ring-offset-black rounded-none cursor-pointer"
                       />
-                      <span className="text-sm font-black text-gray-300 group-hover:text-white uppercase tracking-[0.1em]">I HAVE PAID THE TOLL [₹{form.paymentAmount}]</span>
+                      <span className="text-sm font-black text-gray-300 group-hover:text-white uppercase tracking-[0.1em]">I HAVE PAID THE TOLL [₹{totalPaymentAmount}]</span>
                     </label>
                   </div>
                 </div>
@@ -347,10 +348,10 @@ export default function FightClubTheme({
               <div className="pt-8 mt-12">
                 <button
                   type="submit"
-                  disabled={isSubmitting || (form.isPaymentEnabled && form.paymentAmount > 0 && !paymentConfirmed)}
+                  disabled={isSubmitting || (form.isPaymentEnabled && totalPaymentAmount > 0 && !paymentConfirmed)}
                   className="w-full bg-black hover:bg-[#e63946] text-white hover:text-black font-black py-5 px-8 border-2 border-white hover:border-[#e63946] transition-all disabled:opacity-50 disabled:cursor-not-allowed text-lg sm:text-xl uppercase tracking-[0.2em] shadow-[6px_6px_0px_#fff] hover:shadow-[0px_0px_0px_#000] hover:translate-x-[6px] hover:translate-y-[6px]"
                 >
-                  {isSubmitting ? "I AM JACK'S PROCESSING THREAD..." : form.isPaymentEnabled && form.paymentAmount > 0 ? "PAY & HIT ME" : "I WANT YOU TO HIT ME AS HARD AS YOU CAN"}
+                  {isSubmitting ? "I AM JACK'S PROCESSING THREAD..." : form.isPaymentEnabled && totalPaymentAmount > 0 ? "PAY & HIT ME" : "I WANT YOU TO HIT ME AS HARD AS YOU CAN"}
                 </button>
               </div>
 
