@@ -100,6 +100,17 @@ export async function updateEventFields(id: string, customFields: any[]) {
 // FORMS
 // ----------------------------------------------------
 
+export async function getFormById(id: string) {
+  try {
+    await dbConnect();
+    const form = await FormModel.findById(id).lean();
+    return JSON.parse(JSON.stringify(form));
+  } catch (error) {
+    console.error("Failed to get form by id:", error);
+    return null;
+  }
+}
+
 export async function getForms() {
   try {
     await dbConnect();

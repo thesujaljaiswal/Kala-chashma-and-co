@@ -239,12 +239,8 @@ export default function ManageFormsPage() {
     }
   };
 
-  const handleViewResponses = async (form: any) => {
-    setViewResponsesFor(form);
-    setIsLoadingResponses(true);
-    const res = await getFormResponses(form._id);
-    setResponses(res);
-    setIsLoadingResponses(false);
+  const handleViewResponses = (form: any) => {
+    router.push(`/manage-forms/responses/${form._id}`);
   };
 
   const handleVerifyPayment = async (responseId: string) => {
@@ -284,7 +280,7 @@ export default function ManageFormsPage() {
               <p className="text-gray-400 text-sm mt-1">Create separate questionnaires or feedback forms to share with people.</p>
             </div>
             
-            {!isBuilderOpen && !viewResponsesFor && (
+            {!isBuilderOpen && (
               <button
                 onClick={() => handleOpenBuilder()}
                 className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-2xl shadow-lg transition-colors flex items-center gap-2"
@@ -295,7 +291,7 @@ export default function ManageFormsPage() {
             )}
           </div>
 
-          {!isBuilderOpen && !viewResponsesFor && (
+          {!isBuilderOpen && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {forms.length === 0 ? (
                 <div className="col-span-full bg-white/5 border border-white/10 rounded-3xl p-12 text-center">
@@ -357,78 +353,7 @@ export default function ManageFormsPage() {
             </div>
           )}
 
-          {viewResponsesFor && (
-            <div className="bg-white/5 backdrop-blur-xl border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-indigo-500"></div>
-              
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <button onClick={() => setViewResponsesFor(null)} className="text-gray-400 hover:text-white flex items-center gap-1 mb-2 text-sm font-semibold">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                    Back to Forms
-                  </button>
-                  <h2 className="text-2xl font-bold text-white">Responses for {viewResponsesFor.name}</h2>
-                </div>
-                <div className="text-indigo-400 font-bold bg-indigo-500/10 px-4 py-2 rounded-xl">
-                  {responses.length} Submissions
-                </div>
-              </div>
 
-              {isLoadingResponses ? (
-                <div className="text-gray-400 py-10 text-center">Loading responses...</div>
-              ) : responses.length === 0 ? (
-                <div className="text-gray-400 py-10 text-center bg-black/20 rounded-2xl border border-white/5">No responses yet.</div>
-              ) : (
-                <div className="overflow-x-auto custom-scrollbar">
-                  <table className="w-full text-left text-sm text-gray-300">
-                    <thead className="bg-black/40 text-gray-400 uppercase font-semibold text-xs rounded-xl">
-                      <tr>
-                        <th className="px-4 py-3 rounded-l-xl">Submitted</th>
-                        {viewResponsesFor.fields.map((f: any, i: number) => (
-                          <th key={i} className={`px-4 py-3 ${(!viewResponsesFor.isPaymentEnabled && i === viewResponsesFor.fields.length - 1) ? 'rounded-r-xl' : ''}`}>{f.label}</th>
-                        ))}
-                        {viewResponsesFor.isPaymentEnabled && (
-                          <th className="px-4 py-3 rounded-r-xl">Payment Details</th>
-                        )}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {responses.map((res: any, idx: number) => (
-                        <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                          <td className="px-4 py-4 whitespace-nowrap text-gray-500">{formatDate(res.createdAt)}</td>
-                          {viewResponsesFor.fields.map((f: any, i: number) => {
-                            const answer = res.responses.find((r: any) => (f.id && r.fieldId === f.id) || r.label === f.label)?.value || "-";
-                            return (
-                              <td key={i} className="px-4 py-4 text-white font-medium">
-                                {answer.startsWith('http') ? (
-                                  <button onClick={() => setPreviewImage(answer)} className="text-blue-400 hover:text-blue-300 underline font-semibold transition-colors flex items-center gap-1">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                    View Image
-                                  </button>
-                                ) : (
-                                  answer
-                                )}
-                              </td>
-                            );
-                          })}
-                          {viewResponsesFor.isPaymentEnabled && (
-                            <td className="px-4 py-4">
-                              <button
-                                onClick={() => setSelectedPaymentDetails(res)}
-                                className="bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 border border-indigo-500/30 text-xs font-semibold py-1.5 px-3 rounded-xl transition-colors whitespace-nowrap"
-                              >
-                                View Details
-                              </button>
-                            </td>
-                          )}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
 
           {isBuilderOpen && (
             <div className="bg-white/5 backdrop-blur-xl border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
