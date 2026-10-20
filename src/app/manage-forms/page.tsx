@@ -408,6 +408,17 @@ export default function ManageFormsPage() {
                       <h4 className="text-white font-bold mb-1 font-mono uppercase tracking-widest">Project Mayhem</h4>
                       <p className="text-xs text-gray-400">Gritty, dark, high contrast red accents. First rule: Do not talk about the form.</p>
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setTheme('ember')}
+                      className={`p-4 rounded-xl border-2 text-left transition-all ${theme === 'ember' ? 'border-orange-500 bg-orange-950/30 shadow-[0_0_20px_rgba(249,115,22,0.2)]' : 'border-white/10 bg-black/40 hover:border-orange-500/40'}`}
+                    >
+                      <h4 className="text-white font-bold mb-1 flex items-center gap-1.5">
+                        <span>EMBER Camping</span>
+                        <span>⛺🔥</span>
+                      </h4>
+                      <p className="text-xs text-gray-400">Overnight wilderness stay with roaring bonfire, starry night skies, and camp activities.</p>
+                    </button>
                   </div>
                 </div>
                 

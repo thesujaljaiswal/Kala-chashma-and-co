@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import DefaultTheme from "@/components/forms/themes/default";
 import FightClubTheme from "@/components/forms/themes/fight-club";
 import PartyTheme from "@/components/forms/themes/party";
+import EmberTheme from "@/components/forms/themes/ember";
 
 export default function PublicFormPage({ params }: { params: Promise<{ shareId: string }> }) {
   const unwrappedParams = use(params);
@@ -205,6 +206,10 @@ export default function PublicFormPage({ params }: { params: Promise<{ shareId: 
 
   if (form.theme === 'party') {
     return <PartyTheme {...themeProps} />;
+  }
+
+  if (form.theme === 'ember') {
+    return <EmberTheme {...themeProps} />;
   }
 
   return <DefaultTheme {...themeProps} />;
