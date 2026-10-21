@@ -389,7 +389,7 @@ export default function ManageFormsPage() {
                       onClick={() => setTheme('default')}
                       className={`p-4 rounded-xl border-2 text-left transition-all ${theme === 'default' ? 'border-blue-500 bg-blue-500/10' : 'border-white/10 bg-black/40 hover:border-white/30'}`}
                     >
-                      <h4 className="text-white font-bold mb-1">Default (Kala Chashma)</h4>
+                      <h4 className="text-white font-bold mb-1">Default (Kaala Chasma)</h4>
                       <p className="text-xs text-gray-400">The classic theme with mandala background and gold accents.</p>
                     </button>
                     <button

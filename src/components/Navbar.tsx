@@ -61,8 +61,15 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 relative z-10">
         <div className="flex items-center justify-between h-16 gap-2">
           <div className="flex items-center">
-            <Link href="/" className="text-sm sm:text-xl font-bold text-white tracking-wide truncate max-w-[150px] xs:max-w-[200px] sm:max-w-none">
-              KaalaCHASMA <span className="text-orange-500">&</span> co
+            <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group">
+              <img 
+                src="/logo.png" 
+                alt="Kaala Chashma & Co" 
+                className="h-8 sm:h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-105 filter drop-shadow-[0_2px_8px_rgba(232,106,40,0.3)]"
+              />
+              <span className="text-sm sm:text-xl font-bold text-white tracking-wide truncate max-w-[150px] xs:max-w-[200px] sm:max-w-none">
+                KaalaCHASMA <span className="text-orange-500">&</span> co
+              </span>
             </Link>
           </div>
 

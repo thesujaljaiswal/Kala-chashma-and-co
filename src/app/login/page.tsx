@@ -35,7 +35,12 @@ export default function LoginPage() {
   return (
     <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white/10 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-white/20">
-        <div className="text-center mb-8">
+        <div className="text-center mb-8 flex flex-col items-center">
+          <img 
+            src="/logo.png" 
+            alt="Kaala Chasma & Co" 
+            className="h-14 w-auto object-contain mb-4 filter drop-shadow-[0_4px_16px_rgba(232,106,40,0.45)]"
+          />
           <h2 className="text-3xl font-extrabold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-rose-400">
             Admin Login
           </h2>

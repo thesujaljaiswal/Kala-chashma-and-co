@@ -18,6 +18,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "KaalaCHASMA & co",
   description: "Your journey starts here.",
+  icons: {
+    icon: "/logo-v2.jpg?v=3",
+    shortcut: "/logo-v2.jpg?v=3",
+    apple: "/logo-v2.jpg?v=3",
+  },
 };
 
 export default function RootLayout({
@@ -30,6 +35,11 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <link rel="icon" href="/logo-v2.jpg?v=3" />
+        <link rel="shortcut icon" href="/logo-v2.jpg?v=3" />
+        <link rel="apple-touch-icon" href="/logo-v2.jpg?v=3" />
+      </head>
       <body className="min-h-full flex flex-col bg-[#FAF9F6] text-gray-900">
         <div className="fixed inset-0 z-0 pointer-events-none opacity-20">
           <PixelBlast

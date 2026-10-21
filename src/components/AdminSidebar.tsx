@@ -18,7 +18,10 @@ export default function AdminSidebar({ activeTab, title }: { activeTab: "manage"
       <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 border-r border-white/10 transform transition-transform duration-300 md:relative md:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex flex-col h-full p-4">
           <div className="flex items-center justify-between mb-8 mt-2 md:justify-center shrink-0">
-            <h1 className="text-xl font-extrabold text-white text-center drop-shadow-md">Admin Panel</h1>
+            <Link href="/" className="flex items-center gap-2.5 group">
+              <img src="/logo.png" alt="Logo" className="h-7 w-auto object-contain transition-transform group-hover:scale-105" />
+              <h1 className="text-xl font-extrabold text-white text-center drop-shadow-md">Admin Panel</h1>
+            </Link>
             <button className="md:hidden text-gray-400 hover:text-white" onClick={() => setIsSidebarOpen(false)}>
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>

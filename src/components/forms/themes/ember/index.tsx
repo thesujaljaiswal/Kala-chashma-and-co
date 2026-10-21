@@ -346,7 +346,7 @@ export default function EmberTheme({
 }: ThemeProps) {
 
   // Dynamic States
-  const [flamePower, setFlamePower] = useState(15); // 0% to 100%
+  const [flamePower, setFlamePower] = useState(0); // 0% to 100%
   const [isShowerActive, setIsShowerActive] = useState(false);
   const [hasRevealedForm, setHasRevealedForm] = useState(false);
   const [stokedLogsCount, setStokedLogsCount] = useState(0);
@@ -360,24 +360,39 @@ export default function EmberTheme({
 
   const audioSystemRef = useRef<BonfireAudioSystem | null>(null);
   const lastClickTimeRef = useRef<number>(0);
+  const holdIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isHoldingRef = useRef(false);
 
   // Initialize Audio System once on client
   useEffect(() => {
     audioSystemRef.current = new BonfireAudioSystem();
     return () => {
       audioSystemRef.current?.stop();
+      if (holdIntervalRef.current) {
+        clearInterval(holdIntervalRef.current);
+      }
     };
   }, []);
 
-  // ONLY decay when the form is NOT opened yet (the fast click challenge!)
+  const stopHolding = useCallback(() => {
+    if (holdIntervalRef.current) {
+      clearInterval(holdIntervalRef.current);
+      holdIntervalRef.current = null;
+    }
+    isHoldingRef.current = false;
+  }, []);
+
+  // ONLY decay when the form is NOT opened yet and user is not holding (the fast click/hold challenge!)
   // Once the form is opened, decay is completely disabled.
   useEffect(() => {
     if (isShowerActive || hasRevealedForm) return;
 
     const decayInterval = setInterval(() => {
+      if (isHoldingRef.current) return;
+
       setFlamePower((prev) => {
-        if (prev <= 12) return 12;
-        return Math.max(12, prev - 1.8);
+        if (prev <= 0) return 0;
+        return Math.max(0, prev - 1.8);
       });
     }, 60);
 
@@ -404,7 +419,8 @@ export default function EmberTheme({
   };
 
   // Trigger Maximum Bottom Shower Eruption
-  const triggerMaxEruption = () => {
+  const triggerMaxEruption = useCallback(() => {
+    stopHolding();
     setIsShowerActive(true);
     audioSystemRef.current?.playMaxEruption();
     showAchievement("💥 MAXIMUM INFERNO! Bonfire Embers Shower! 🔥✨");
@@ -417,11 +433,116 @@ export default function EmberTheme({
     // Cooldown and reset so user can repeat anytime
     setTimeout(() => {
       setIsShowerActive(false);
-      setFlamePower(20);
+      setFlamePower(0);
     }, 3200);
+  }, [stopHolding]);
+
+  const emitBonfireSpark = (x: number, y: number) => {
+    const sparkId = Date.now() + Math.random();
+    setClickSparks((prev) => [...prev.slice(-15), { id: sparkId, x, y }]);
+    setTimeout(() => {
+      setClickSparks((prev) => prev.filter((s) => s.id !== sparkId));
+    }, 1000);
   };
 
-  // Bonfire Click Handler
+  // Tap handler (works for both fast clicks and initial touch down)
+  const handleBonfireTap = (clientX?: number, clientY?: number, rect?: DOMRect) => {
+    if (isShowerActive || hasRevealedForm) return;
+
+    const now = Date.now();
+    const interval = now - lastClickTimeRef.current;
+    lastClickTimeRef.current = now;
+
+    if (!isAudioPlaying) {
+      audioSystemRef.current?.start();
+      setIsAudioPlaying(true);
+    } else {
+      audioSystemRef.current?.playStokeWhoosh(interval < 250 ? 2.0 : 1.2);
+    }
+
+    const sparkX = clientX !== undefined && rect ? clientX - rect.left : 100;
+    const sparkY = clientY !== undefined && rect ? clientY - rect.top : 100;
+    emitBonfireSpark(sparkX, sparkY);
+
+    const boost = interval < 200 ? 18 : interval < 350 ? 13 : 9;
+    setFlamePower((prev) => {
+      const nextPower = prev + boost;
+      if (nextPower >= 100) {
+        triggerMaxEruption();
+        return 100;
+      }
+      return nextPower;
+    });
+  };
+
+  // Pointer down handler: supports immediate tap and continuous hold-to-charge
+  const handleBonfirePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    if (isShowerActive || hasRevealedForm) return;
+
+    const target = e.currentTarget;
+    try {
+      target.setPointerCapture(e.pointerId);
+    } catch {}
+
+    const rect = target.getBoundingClientRect();
+    isHoldingRef.current = true;
+
+    // Instant boost and spark on press
+    handleBonfireTap(e.clientX, e.clientY, rect);
+
+    // Continuous hold loop: builds power smoothly proportional to time held (~35% per second)
+    let ticks = 0;
+    if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
+
+    holdIntervalRef.current = setInterval(() => {
+      if (isShowerActive || hasRevealedForm) {
+        stopHolding();
+        return;
+      }
+
+      ticks++;
+      setFlamePower((prev) => {
+        const nextPower = prev + 1.4;
+        if (nextPower >= 100) {
+          triggerMaxEruption();
+          stopHolding();
+          return 100;
+        }
+        return nextPower;
+      });
+
+      // Embers crackle and spark periodically while holding
+      if (ticks % 5 === 0) {
+        audioSystemRef.current?.playSnap(0.3 + Math.random() * 0.3);
+        const sparkX = rect.width / 2 + (Math.random() - 0.5) * 80;
+        const sparkY = rect.height / 2 + (Math.random() - 0.5) * 80;
+        emitBonfireSpark(sparkX, sparkY);
+      }
+
+      // Whoosh sound every ~600ms of holding
+      if (ticks % 15 === 0) {
+        audioSystemRef.current?.playStokeWhoosh(1.3);
+      }
+    }, 40);
+  };
+
+  const handleBonfirePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {}
+    stopHolding();
+  };
+
+  const handleBonfirePointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {}
+    stopHolding();
+  };
+
+  // Bonfire Click Handler for post-reveal / dock / victory fire
   const handleBonfireClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     const now = Date.now();
@@ -439,11 +560,7 @@ export default function EmberTheme({
       audioSystemRef.current?.playStokeWhoosh(hasRevealedForm ? 1.0 : (interval < 250 ? 2.0 : 1.2));
     }
 
-    const sparkId = Date.now();
-    setClickSparks((prev) => [...prev.slice(-15), { id: sparkId, x: clickX, y: clickY }]);
-    setTimeout(() => {
-      setClickSparks((prev) => prev.filter((s) => s.id !== sparkId));
-    }, 1000);
+    emitBonfireSpark(clickX, clickY);
 
     if (isShowerActive) return;
 
@@ -454,16 +571,7 @@ export default function EmberTheme({
       const msg = CAMP_VIBE_ACHIEVEMENTS[newLogs % CAMP_VIBE_ACHIEVEMENTS.length];
       showAchievement(msg);
     } else {
-      // Rapid click boost before form opens
-      const boost = interval < 200 ? 20 : interval < 350 ? 14 : 9;
-      setFlamePower((prev) => {
-        const nextPower = prev + boost;
-        if (nextPower >= 100) {
-          triggerMaxEruption();
-          return 100;
-        }
-        return nextPower;
-      });
+      handleBonfireTap(e.clientX, e.clientY, rect);
     }
   };
 
@@ -806,21 +914,29 @@ export default function EmberTheme({
             </h1>
             
             <p className="text-amber-200/80 text-sm sm:text-base mt-2 font-medium max-w-md mx-auto">
-              🔥 <span className="font-bold text-orange-400">Click fire fast</span> to reach 100% & open the form!
+              🔥 <span className="font-bold text-orange-400">Tap or hold fire</span> to reach 100% & open the form!
             </p>
           </motion.div>
 
-          {/* Interactive Fast-Click Fire Container */}
+          {/* Interactive Fast-Click / Hold Fire Container */}
           <div className="relative flex flex-col items-center">
             
             {/* The circular boundary container: flame NEVER exceeds this circle! */}
             <div 
               data-bonfire="true"
-              onClick={handleBonfireClick}
-              className="relative w-48 h-48 sm:w-56 sm:h-56 rounded-full border-2 border-orange-500/40 bg-gradient-to-b from-[#101b2a]/95 to-[#070e17]/95 shadow-[0_0_40px_rgba(249,115,22,0.3)] flex items-center justify-center cursor-pointer select-none overflow-hidden group"
-              title="Click as fast as you can to grow the fire!"
+              onPointerDown={handleBonfirePointerDown}
+              onPointerUp={handleBonfirePointerUp}
+              onPointerCancel={handleBonfirePointerCancel}
+              onPointerLeave={handleBonfirePointerCancel}
+              onContextMenu={(e) => e.preventDefault()}
+              onClick={(e) => e.stopPropagation()}
+              tabIndex={0}
+              role="button"
+              aria-label="Bonfire - tap or hold to build heat"
+              className="relative w-48 h-48 sm:w-56 sm:h-56 rounded-full border-2 border-orange-500/40 bg-gradient-to-b from-[#101b2a]/95 to-[#070e17]/95 shadow-[0_0_40px_rgba(249,115,22,0.3)] flex items-center justify-center cursor-pointer select-none overflow-hidden group touch-none active:scale-[0.98] transition-transform"
+              title="Click or hold to grow the fire!"
             >
-              {/* Sparks flying from click points */}
+              {/* Sparks flying from click / hold points */}
               {clickSparks.map((spark) => (
                 <motion.div
                   key={spark.id}
@@ -884,7 +1000,7 @@ export default function EmberTheme({
             <div className="mt-5 text-center select-none">
               <div className="flex items-center gap-2 justify-center mb-1.5">
                 <span className="text-xs font-black uppercase tracking-widest text-orange-300">
-                  {flamePower >= 95 ? "💥 MAXIMUM ROAR!" : flamePower >= 60 ? "🔥 HEAT SURGING!" : "🪵 CLICK FAST TO BUILD HEAT!"}
+                  {flamePower >= 95 ? "💥 MAXIMUM ROAR!" : flamePower >= 60 ? "🔥 HEAT SURGING!" : "🪵 TAP OR HOLD TO BUILD HEAT!"}
                 </span>
                 <span className="text-xs font-mono font-black text-amber-200 bg-orange-500/20 px-2 py-0.5 rounded-md border border-orange-400/30">
                   {Math.round(flamePower)}%
@@ -894,7 +1010,7 @@ export default function EmberTheme({
               <div className="w-48 sm:w-64 h-2.5 bg-black/60 rounded-full p-0.5 border border-orange-500/30 shadow-inner overflow-hidden mx-auto">
                 <motion.div 
                   className="h-full rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-300 shadow-[0_0_12px_#f97316]"
-                  style={{ width: `${Math.min(100, Math.max(8, flamePower))}%` }}
+                  style={{ width: `${Math.min(100, Math.max(0, flamePower))}%` }}
                 />
               </div>
               
