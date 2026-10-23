@@ -83,10 +83,14 @@ const CAMP_VIBE_ACHIEVEMENTS = [
 ];
 
 const CAMP_HIGHLIGHTS = [
-  { icon: "🔥", label: "Calming Bonfire" },
-  { icon: "⛺", label: "Overnight Stay" },
-  { icon: "🎯", label: "Camp Activities" },
-  { icon: "🎸", label: "Acoustic Jam" },
+  { icon: "🏕️", label: "Overnight camping experience" },
+  { icon: "⛺", label: "Camping accommodation" },
+  { icon: "🍳", label: "Food and breakfast" },
+  { icon: "🔥", label: "Bonfire experience" },
+  { icon: "🎸", label: "Music and live jamming sessions" },
+  { icon: "🎲", label: "Camp games and activities" },
+  { icon: "🌌", label: "Night sky gazing" },
+  { icon: "✨", label: "Access to the EMBER experience" },
 ];
 
 // ----------------------------------------------------
@@ -1120,7 +1124,7 @@ export default function EmberTheme({
                     {form.name}
                   </h2>
 
-                  {/* Moving Infinite Highlights Carousel (Moving from Left to Right continuously) */}
+                  {/* Moving Infinite Highlights Carousel (Moving from Right to Left continuously) */}
                   <div className="w-full overflow-hidden py-1.5 my-3 relative select-none">
                     {/* Left and right fade gradient mask for smooth edges */}
                     <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#09111c] to-transparent z-10 pointer-events-none" />
@@ -1128,7 +1132,7 @@ export default function EmberTheme({
 
                     <motion.div
                       className="flex items-center gap-2.5 whitespace-nowrap will-change-transform"
-                      animate={{ x: ["-50%", "0%"] }}
+                      animate={{ x: ["0%", "-50%"] }}
                       transition={{
                         x: {
                           repeat: Infinity,
