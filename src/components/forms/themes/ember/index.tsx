@@ -1463,7 +1463,7 @@ export default function EmberTheme({
                         {isSubmitting 
                           ? "Securing Your Campsite..." 
                           : form.isPaymentEnabled && totalPaymentAmount > 0 
-                            ? `Pay ₹${totalPaymentAmount} & Reserve My Campsite 🏕️` 
+                            ? `Reserve My Campsite 🏕️` 
                             : "Lock In My Camping Spot 🏕️"}
                       </span>
                       {!isSubmitting && <span className="text-xl">🔥</span>}
